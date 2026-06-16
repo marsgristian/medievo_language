@@ -9,6 +9,7 @@ from .base import (
     SubsectionParserConfig,
 )
 from .registry import SectionRegistry
+from .informacoes_paciente import InformacoesPacienteSection
 
 __all__ = [
     "AssociatedErrorsConfig",
@@ -20,4 +21,5 @@ __all__ = [
     "SectionRegistry",
     "SpecificSectionParser",
     "SubsectionParserConfig",
+    "InformacoesPacienteSection",
 ]

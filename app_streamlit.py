@@ -7,10 +7,26 @@ import streamlit as st
 
 from med_evo import compile_medievo
 from med_evo.models import ClinicalDocument
+from datetime import datetime
+
+from med_evo.sections import InformacoesPacienteSection, SectionRegistry
+
+SECTION_REGISTRY = SectionRegistry(
+    [
+        InformacoesPacienteSection(),
+    ]
+)
+
 
 EXAMPLE_PATH = Path(__file__).parent / "examples" / "minimal_valid.medievo"
 
 MINIMAL_EXAMPLE = EXAMPLE_PATH.read_text(encoding="utf-8") if EXAMPLE_PATH.exists() else """EVOLUÇÃO - DIURNA - 16/06/2026 10:30
+# INFORMAÇÕES DO PACIENTE
+Nome: Maria Silva | Idade: 2 anos 2 meses 2 dias
+Data da internação: 10/06/2026
+Sexo: feminino
+Peso: 56,987 kg
+
 # EXAMES: laboratoriais (últimas 24h)
 Hb: 10,2; Leuco: 12000; Plaquetas: 250000 | PCR: 45
 > Prévio: 10/06 Hb: 9,8; PCR: 80
@@ -70,7 +86,7 @@ with st.sidebar:
 text = st.text_area("Fonte medievo", value=MINIMAL_EXAMPLE, height=520)
 
 if st.button("Compilar", type="primary"):
-    st.session_state["compiled"] = compile_medievo(text)
+    st.session_state["compiled"] = compile_medievo(text, section_registry=SECTION_REGISTRY,reference_datetime=datetime.now())
 
 compiled = st.session_state.get("compiled")
 if compiled is None:
