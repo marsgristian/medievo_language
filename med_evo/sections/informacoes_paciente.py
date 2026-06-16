@@ -23,6 +23,23 @@ from med_evo.sections.base import (
     normalize_name,
 )
 
+@dataclass(frozen=True, slots=True)
+class ParsedField:
+    raw_text: str
+    value: Any
+    date: Any | None = None
+    state: str | None = None
+    commented_values: list[str] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "raw_text": self.raw_text,
+            "value": self.value,
+            "date": self.date,
+            "state": self.state,
+            "commented_values": self.commented_values or [],
+        }
+
 
 @dataclass(frozen=True, slots=True)
 class ParsedAge:
@@ -207,25 +224,30 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
                 continue
 
             if canonical_key == "nome":
-                data["nome"] = self._item_value_text(item)
+                value = self._item_value_text(item)
+                data["nome"] = self._field_from_item(item, value)
 
             elif canonical_key == "sexo":
-                data["sexo"] = self._item_value_text(item)
+                value = self._item_value_text(item)
+                data["sexo"] = self._field_from_item(item, value)
 
             elif canonical_key == "data da internação":
                 if item.date is not None and hasattr(item.date, "value"):
-                    data["data_da_internacao"] = item.date.value
+                    value = item.date.value
                 else:
-                    data["data_da_internacao"] = None
+                    value = None
+
+                data["data_da_internacao"] = self._field_from_item(item, value)
 
             elif canonical_key == "peso":
-                data["peso"] = self._parse_weight(self._item_value_text(item))
+                value = self._parse_weight(self._item_value_text(item))
+                data["peso"] = self._field_from_item(item, value)
 
             elif canonical_key == "idade":
                 parsed_age = self._parse_age_text(self._item_value_text(item))
                 if parsed_age is not None:
                     self._apply_implicit_age_compound(item, parsed_age)
-                    data["idade"] = parsed_age.to_dict()
+                    data["idade"] = self._field_from_item(item, parsed_age.to_dict())
 
         return data
 
@@ -246,6 +268,15 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
             "sexo": data.get("sexo"),
             "peso": f"{peso:g} kg" if isinstance(peso, float) else None,
         }
+        
+    def _field_from_item(self, item: ClinicalItem, value: Any) -> ParsedField:
+        return ParsedField(
+            raw_text=item.raw_text,
+            value=value,
+            date=item.date,
+            state=item.state,
+            commented_values=item.commented_values,
+        )
 
     def _items_by_canonical_key(self, section: ClinicalSection) -> dict[str, list[ClinicalItem]]:
         result: dict[str, list[ClinicalItem]] = {}
