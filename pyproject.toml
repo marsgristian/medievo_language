@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "medievo-compiler"
+version = "0.3.0"
+description = "Compilador medievo: DSL inspirada em Markdown para evolução médica semi-estruturada"
+authors = ["medievo Project"]
+readme = "README.md"
+packages = [{ include = "med_evo" }]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
+lark = ">=1.1.9"
+pandas = ">=2.0"
+
+[tool.poetry.group.ui.dependencies]
+streamlit = ">=1.33"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0"
+
+[tool.poetry.scripts]
+medievo = "med_evo.cli:main"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"

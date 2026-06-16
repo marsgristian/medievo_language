@@ -1,0 +1,28 @@
+// medievo - gramática estrutural mínima inspirada em Markdown.
+// Parser generator: Lark.
+// A gramática reconhece apenas a estrutura externa: seção (#), subseção (>), texto e linhas em branco.
+// A interpretação de datas, key/value, states inline, itens compostos e regras clínicas fica em Python.
+
+start: line*
+
+line: section_line NEWLINE?      -> section_line
+    | subsection_line NEWLINE?   -> subsection_line
+    | text_line NEWLINE?         -> text_line
+    | NEWLINE                    -> blank_line
+
+section_line: SECTION_LINE
+subsection_line: SUBSECTION_LINE
+text_line: TEXT_LINE
+
+// Seção precisa ter nome não vazio e não pode misturar subseção ou itens universais na mesma linha.
+// Exemplos válidos: "# MEDICAMENTOS", "# MEDICAMENTOS:", "# EXAMES: laboratoriais".
+SECTION_LINE: /#+[ \t]*[^\s#>:|\r\n][^#>|\r\n]*/
+
+// Subsection é validada com mais detalhe no parser semântico mínimo, porque pode conter item na mesma linha.
+// Exemplos válidos: "> Prévio:", "> Prévio: Hb: 10 | PCR: 20".
+SUBSECTION_LINE: />[ \t]*[^\r\n]+/
+
+// Linha textual não pode começar com marcador estrutural nem com key explicitamente vazia.
+TEXT_LINE: /[ \t]*(?![#>:])(?=.*\S)[^\r\n]+/
+
+%import common.NEWLINE

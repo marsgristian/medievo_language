@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+from datetime import datetime
+
+from med_evo import compile_medievo
+from med_evo.models import ClinicalItem, ClinicalSection, CompilerDiagnostic
+from med_evo.sections import (
+    BaseSpecificSectionParser,
+    ItemParserConfig,
+    SectionParserConfig,
+    SectionRegistry,
+    SubsectionParserConfig,
+)
+
+
+class ExamesSection(BaseSpecificSectionParser):
+    section_parser = SectionParserConfig(
+        canonical_name="EXAMES",
+        accepted_names=("EXAMES",),
+        required=True,
+        required_section_value=True,
+    )
+    subsection_parser = SubsectionParserConfig(
+        default_subsections=("Atual", "Prévio"),
+        required_subsections=("Prévio",),
+        allow_new=False,
+        inline_states=("atual", "prévio", "previo"),
+    )
+    item_parser = ItemParserConfig(
+        allow_free_text=False,
+        require_key=True,
+        accepted_keys=("Hb", "PCR"),
+    )
+
+    def parse_item(
+        self,
+        item: ClinicalItem,
+        section: ClinicalSection,
+        diagnostics: list[CompilerDiagnostic],
+    ) -> dict[str, object]:
+        return {
+            "key": item.key,
+            "state": item.state,
+            "values": [value.value for value in item.values],
+            "children": [self.parse_item(child, section, diagnostics) for child in item.children],
+        }
+
+
+def test_specific_section_registry_processes_section_without_changing_minimal_language():
+    registry = SectionRegistry([ExamesSection()])
+    compiled = compile_medievo(
+        "EVOLUÇÃO 16/06/2026\n# EXAMES: laboratoriais\n> Prévio: Hb: 10; PCR: 20\n",
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    assert "EXAMES" in compiled.processed_sections
+    result = compiled.processed_sections["EXAMES"]
+    assert result.data["items"][0]["key"] == "Hb"
+    assert result.data["items"][0]["state"] == "Prévio"
+    assert result.data["items"][0]["children"][0]["key"] == "PCR"
+
+
+def test_specific_section_can_emit_missing_required_section_error():
+    registry = SectionRegistry([ExamesSection()])
+    compiled = compile_medievo("# MEDICAMENTOS:\nDipirona\n", section_registry=registry)
+
+    assert "required_section_missing" in {diagnostic.code for diagnostic in compiled.diagnostics}
+
+
+def test_specific_section_can_recognize_inline_state_semantically():
+    registry = SectionRegistry([ExamesSection()])
+    compiled = compile_medievo(
+        "# EXAMES: laboratoriais\n> Prévio:\nHb: 10 atual\n",
+        reference_datetime=datetime(2026, 6, 16, 10, 30),
+        section_registry=registry,
+    )
+
+    item = compiled.sections[0].items[0]
+    assert item.state is not None
+    assert item.state.lower() == "atual"
