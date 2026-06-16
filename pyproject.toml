@@ -5,6 +5,7 @@ description = "Compilador medievo: DSL inspirada em Markdown para evolução mé
 authors = ["medievo Project"]
 readme = "README.md"
 packages = [{ include = "med_evo" }]
+include = ["med_evo/parser/medievo.lark"]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<4.0"

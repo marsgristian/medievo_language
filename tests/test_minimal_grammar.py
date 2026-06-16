@@ -67,3 +67,12 @@ def test_section_line_accepts_name_and_optional_value_only():
     assert section.section_name == "EXAMES"
     assert section.section_value == "laboratoriais"
     assert section.commented_values == ["últimas 24h"]
+
+
+def test_section_allows_markers_inside_parentheses_and_ignored_comments():
+    compiled = compile_minimal_medievo("# EXAMES: painel (> 24h) /* a | b */\nHb: 10\n", reference_datetime=BASE_REFERENCE)
+
+    assert not compiled.errors()
+    section = compiled.sections[0]
+    assert section.commented_values == ["> 24h"]
+    assert section.ignored_comments == ["a | b"]

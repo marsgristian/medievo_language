@@ -45,6 +45,28 @@ def split_top_level(text: str, sep: str) -> list[str]:
     return parts
 
 
+def contains_top_level(text: str, needle: str) -> bool:
+    """Retorna True quando `needle` aparece fora de parenteses e comentarios."""
+    paren_depth = 0
+    i = 0
+    while i < len(text):
+        if text.startswith("/*", i):
+            end = text.find("*/", i + 2)
+            if end == -1:
+                return False
+            i = end + 2
+            continue
+        ch = text[i]
+        if ch == "(":
+            paren_depth += 1
+        elif ch == ")" and paren_depth > 0:
+            paren_depth -= 1
+        elif ch == needle and paren_depth == 0:
+            return True
+        i += 1
+    return False
+
+
 def remove_ignored_comments(text: str) -> RemovedText:
     """Remove comentários ignoráveis /* ... */ preservando o conteúdo removido."""
     removed: list[str] = []

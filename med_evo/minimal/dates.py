@@ -70,6 +70,19 @@ def find_first_period(
     if start_date is None or end_date is None:
         return None
 
+    if end_date.value < start_date.value:
+        diagnostics.append(
+            CompilerDiagnostic(
+                severity="error",
+                code="invalid_date_period",
+                message=f"Período com data final anterior à inicial: {match.group(0)}.",
+                phase="semantic",
+                line=line,
+                section=section,
+                raw_text=match.group(0),
+            )
+        )
+
     period = ClinicalDatePeriod(
         raw_text=match.group(0),
         start=start_date,

@@ -40,4 +40,4 @@ class SectionRegistry:
                 continue
             result = parser.process(section, document)
             document.diagnostics.extend(result.diagnostics)
-            document.processed_sections[result.canonical_name] = result
+            document.processed_sections.setdefault(result.canonical_name, []).append(result)

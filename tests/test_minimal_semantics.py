@@ -80,3 +80,9 @@ def test_json_serializes_datetime_and_timedelta():
     payload = compiled.to_json()
     assert "2026-06-10T00:00" in payload
     assert "seconds" in payload
+
+
+def test_date_period_with_end_before_start_emits_error():
+    compiled = compile_minimal_medievo("EVOLUCAO 16/06/2026\n# DISPOSITIVOS:\nSVD: 12/06-10/06\n")
+
+    assert "invalid_date_period" in {diagnostic.code for diagnostic in compiled.diagnostics}

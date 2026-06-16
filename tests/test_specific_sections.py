@@ -6,6 +6,7 @@ from med_evo import compile_medievo
 from med_evo.models import ClinicalItem, ClinicalSection, CompilerDiagnostic
 from med_evo.sections import (
     BaseSpecificSectionParser,
+    InformacoesPacienteSection,
     ItemParserConfig,
     SectionParserConfig,
     SectionRegistry,
@@ -55,7 +56,7 @@ def test_specific_section_registry_processes_section_without_changing_minimal_la
 
     assert not compiled.errors()
     assert "EXAMES" in compiled.processed_sections
-    result = compiled.processed_sections["EXAMES"]
+    result = compiled.processed_sections["EXAMES"][0]
     assert result.data["items"][0]["key"] == "Hb"
     assert result.data["items"][0]["state"] == "Prévio"
     assert result.data["items"][0]["children"][0]["key"] == "PCR"
@@ -79,3 +80,52 @@ def test_specific_section_can_recognize_inline_state_semantically():
     item = compiled.sections[0].items[0]
     assert item.state is not None
     assert item.state.lower() == "atual"
+
+
+def test_informacoes_paciente_processes_age_without_mutating_ast():
+    registry = SectionRegistry([InformacoesPacienteSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# INFORMACOES DO PACIENTE",
+                "Nome: Maria Silva",
+                "Idade: 2 anos 3 meses 4 dias",
+                "Data internacao: 10/06/2026",
+                "Sexo: feminino",
+                "Peso: 56,987 kg",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+
+    age_item = next(item for item in compiled.sections[0].items if item.key == "Idade")
+    assert [value.value for value in age_item.values] == ["2 anos 3 meses 4 dias"]
+    assert age_item.children == []
+
+    result = next(iter(compiled.processed_sections.values()))[0]
+    assert result.data["idade"].value == {"anos": 2, "meses": 3, "dias": 4}
+    assert result.normalized["idade"] == "2 anos 3 meses 4 dias"
+    assert result.normalized["nome"] == "Maria Silva"
+
+
+def test_specific_section_registry_preserves_repeated_canonical_sections():
+    registry = SectionRegistry([ExamesSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# EXAMES: laboratoriais",
+                "> Pr\u00e9vio: Hb: 10",
+                "# EXAMES: imagem",
+                "> Pr\u00e9vio: PCR: 20",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    assert len(compiled.processed_sections["EXAMES"]) == 2
+    assert [result.raw_section_name for result in compiled.processed_sections["EXAMES"]] == ["EXAMES", "EXAMES"]

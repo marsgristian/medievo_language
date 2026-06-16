@@ -18,6 +18,7 @@ from med_evo.sections.registry import SectionRegistry
 
 from .dates import DateMatch, extract_reference_datetime, find_first_date, find_first_period, remove_date_span
 from .text import (
+    contains_top_level,
     extract_parenthesized_values,
     find_structural_colon,
     normalize_spaces,
@@ -380,7 +381,7 @@ def _prevalidate_raw_syntax(text: str) -> list[CompilerDiagnostic]:
             content = stripped.lstrip("#").strip()
             if not content or content.startswith(":"):
                 diagnostics.append(_syntax("empty_section_name", "Seção com nome vazio.", line_number, raw_line))
-            elif ">" in content:
+            elif contains_top_level(content, ">"):
                 diagnostics.append(
                     _syntax(
                         "section_contains_subsection_marker",
@@ -389,7 +390,7 @@ def _prevalidate_raw_syntax(text: str) -> list[CompilerDiagnostic]:
                         raw_line,
                     )
                 )
-            elif "|" in content:
+            elif contains_top_level(content, "|"):
                 diagnostics.append(
                     _syntax(
                         "section_contains_item_separator",

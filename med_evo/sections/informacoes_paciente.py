@@ -10,7 +10,6 @@ from med_evo.models import (
     ClinicalDocument,
     ClinicalItem,
     ClinicalSection,
-    ClinicalValue,
     CompilerDiagnostic,
 )
 from med_evo.sections.base import (
@@ -64,7 +63,7 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
     - subseções são permitidas, mas não obrigatórias;
     - todos os itens precisam ser key/value;
     - itens obrigatórios: nome, idade, data da internação, sexo e peso;
-    - idade é transformada em item composto implícito;
+    - idade é transformada em dicionário estruturado nos dados processados;
     - peso é convertido para float a partir de número em formato pt-BR.
     """
 
@@ -246,7 +245,6 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
             elif canonical_key == "idade":
                 parsed_age = self._parse_age_text(self._item_value_text(item))
                 if parsed_age is not None:
-                    self._apply_implicit_age_compound(item, parsed_age)
                     data["idade"] = self._field_from_item(item, parsed_age.to_dict())
 
         return data
@@ -255,17 +253,17 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
         if not isinstance(data, dict):
             return data
 
-        idade = data.get("idade") or {}
+        idade = self._field_value(data.get("idade")) or {}
         idade_text = self._format_age(idade) if isinstance(idade, dict) else None
 
-        peso = data.get("peso")
+        peso = self._field_value(data.get("peso"))
 
         return {
             "section_name": self.normalization.normalized_section_name,
-            "nome": data.get("nome"),
+            "nome": self._field_value(data.get("nome")),
             "idade": idade_text,
-            "data_da_internacao": self._format_datetime(data.get("data_da_internacao")),
-            "sexo": data.get("sexo"),
+            "data_da_internacao": self._format_datetime(self._field_value(data.get("data_da_internacao"))),
+            "sexo": self._field_value(data.get("sexo")),
             "peso": f"{peso:g} kg" if isinstance(peso, float) else None,
         }
         
@@ -277,6 +275,11 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
             state=item.state,
             commented_values=item.commented_values,
         )
+
+    def _field_value(self, field: Any) -> Any:
+        if isinstance(field, ParsedField):
+            return field.value
+        return field
 
     def _items_by_canonical_key(self, section: ClinicalSection) -> dict[str, list[ClinicalItem]]:
         result: dict[str, list[ClinicalItem]] = {}
@@ -338,59 +341,6 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
             meses=values["mes"],
             dias=values["dia"],
         )
-
-    def _apply_implicit_age_compound(self, item: ClinicalItem, parsed_age: ParsedAge) -> None:
-        parts: list[tuple[str, int]] = []
-
-        if parsed_age.anos:
-            parts.append(("ano", parsed_age.anos))
-
-        if parsed_age.meses:
-            parts.append(("mes", parsed_age.meses))
-
-        if parsed_age.dias:
-            parts.append(("dia", parsed_age.dias))
-
-        value_text = self._item_value_text(item)
-
-        # Preserva ano zero quando escrito explicitamente:
-        # Idade: 0 anos 2 meses 2 dias
-        if not any(unit == "ano" for unit, _ in parts):
-            if re.search(r"\b0\s*anos?\b", value_text, flags=re.IGNORECASE):
-                parts.insert(0, ("ano", 0))
-
-        if not parts:
-            return
-
-        first_key, first_value = parts[0]
-
-        item.values = [
-            ClinicalValue(
-                raw_text=f"{first_key}: {first_value}",
-                value=f"{first_key}: {first_value}",
-                commented_values=[],
-            )
-        ]
-
-        item.children = [
-            ClinicalItem(
-                raw_text=f"{key}: {value}",
-                date=None,
-                state=None,
-                key=key,
-                values=[
-                    ClinicalValue(
-                        raw_text=str(value),
-                        value=str(value),
-                        commented_values=[],
-                    )
-                ],
-                commented_values=[],
-                children=[],
-                line=item.line,
-            )
-            for key, value in parts[1:]
-        ]
 
     def _parse_weight(self, text: str) -> float | None:
         match = _WEIGHT_NUMBER_RE.search(text)

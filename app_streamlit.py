@@ -7,7 +7,6 @@ import streamlit as st
 
 from med_evo import compile_medievo
 from med_evo.models import ClinicalDocument
-from datetime import datetime
 
 from med_evo.sections import InformacoesPacienteSection, SectionRegistry
 
@@ -86,7 +85,7 @@ with st.sidebar:
 text = st.text_area("Fonte medievo", value=MINIMAL_EXAMPLE, height=520)
 
 if st.button("Compilar", type="primary"):
-    st.session_state["compiled"] = compile_medievo(text, section_registry=SECTION_REGISTRY,reference_datetime=datetime.now())
+    st.session_state["compiled"] = compile_medievo(text, section_registry=SECTION_REGISTRY)
 
 compiled = st.session_state.get("compiled")
 if compiled is None:

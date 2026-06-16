@@ -1,18 +1,5 @@
-medievo_GRAMMAR = r'''
-start: line*
+from __future__ import annotations
 
-line: section_line NEWLINE?      -> section_line
-    | subsection_line NEWLINE?   -> subsection_line
-    | text_line NEWLINE?         -> text_line
-    | NEWLINE                    -> blank_line
+from importlib.resources import files
 
-section_line: SECTION_LINE
-subsection_line: SUBSECTION_LINE
-text_line: TEXT_LINE
-
-SECTION_LINE: /#+[ \t]*[^\s#>:|\r\n][^#>|\r\n]*/
-SUBSECTION_LINE: />[ \t]*[^\r\n]+/
-TEXT_LINE: /[ \t]*(?![#>:])(?=.*\S)[^\r\n]+/
-
-%import common.NEWLINE
-'''
+medievo_GRAMMAR = files("med_evo.parser").joinpath("medievo.lark").read_text(encoding="utf-8")

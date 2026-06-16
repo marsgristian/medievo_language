@@ -90,7 +90,7 @@ class ClinicalSection:
 @dataclass(slots=True)
 class ClinicalDocument:
     language: str = "medievo"
-    version: str = "minimal-0.2.0"
+    version: str = "minimal-0.3.0"
     reference_datetime: datetime | None = None
     sections: list[ClinicalSection] = field(default_factory=list)
     diagnostics: list[CompilerDiagnostic] = field(default_factory=list)

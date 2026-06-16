@@ -9,7 +9,7 @@ A linguagem mínima monta a AST genérica.
 A seção específica interpreta a AST genérica daquela seção.
 ```
 
-Portanto, para criar uma seção nova, você cria um arquivo novo e registra a seção. Não é necessário alterar `grammar/medievo.lark`, `med_evo/minimal/compiler.py` ou os modelos base.
+Portanto, para criar uma seção nova, você cria um arquivo novo e registra a seção. Não é necessário alterar `med_evo/parser/medievo.lark`, `med_evo/minimal/compiler.py` ou os modelos base.
 
 ## 1. Interface conceitual
 
@@ -315,4 +315,3 @@ A gramática deve continuar pequena e estável. O conhecimento clínico pertence
 
 
 ---
-

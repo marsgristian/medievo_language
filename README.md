@@ -56,7 +56,7 @@ ClinicalDocument(
     reference_datetime=datetime | None,
     sections=list[ClinicalSection],
     diagnostics=list[CompilerDiagnostic],
-    processed_sections=dict[str, Any],
+    processed_sections=dict[str, list[Any]],
     raw_text=str,
 )
 ```
@@ -131,7 +131,7 @@ SVD: 10-12/06
 Arquivo principal:
 
 ```text
-grammar/medievo.lark
+med_evo/parser/medievo.lark
 ```
 
 A gramática reconhece:
@@ -315,7 +315,7 @@ A suíte cobre:
 ## Arquivos importantes
 
 ```text
-grammar/medievo.lark                 gramática Lark estrutural
+med_evo/parser/medievo.lark          gramática Lark estrutural
 med_evo/minimal/compiler.py         compilador mínimo
 med_evo/minimal/dates.py            parser de datas/períodos
 med_evo/minimal/text.py             utilitários de split/commented values
