@@ -9,11 +9,13 @@ from .base import (
     SubsectionParserConfig,
 )
 from .registry import SectionRegistry
+from .diagnostico import DiagnosticoSection
 from .informacoes_paciente import InformacoesPacienteSection
 
 __all__ = [
     "AssociatedErrorsConfig",
     "BaseSpecificSectionParser",
+    "DiagnosticoSection",
     "ItemParserConfig",
     "NormalizationConfig",
     "SectionParserConfig",

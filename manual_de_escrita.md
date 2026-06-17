@@ -331,3 +331,74 @@ Sexo: feminino
 Peso: 16/06 56,987 kg
 Leito: 123
 ```
+
+### DIAGNÓSTICO
+
+A seção é obrigatória.
+
+Nomes aceitos:
+
+- `Diagnóstico`
+- `Diagnósticos`
+- `Hipótese diagnóstica`
+- `Hipóteses diagnósticas`
+
+Maiúsculas e minúsculas não importam. Para essa seção, os nomes também são aceitos com ou sem acento.
+
+Os itens devem ser escritos como texto livre, sem `key: value`.
+
+```medievo
+# DIAGNOSTICO
+R09 Hipoxemia a/e (cissurite em lobo inferior direito)
+J98.1 Atelectasia crônica
+R13 Disfagia? (precisa de exames para saber ao certo)
+```
+
+Cada item pode conter:
+
+- `cid`: opcional, no começo do item, em padrão CID-10 ou CID-11;
+- `diagnostico`: obrigatório, formado pelo texto restante depois de remover campos parseáveis;
+- `data`: opcional, como data ou período;
+- `estado`: opcional, por subseção ou inline.
+
+Estados aceitos:
+
+- `Ativo`: também aceita `ativa` e `atual`; é o padrão quando o estado é omitido;
+- `Em tratamento`: também aceita `tratando` e `tratamento`;
+- `Tratado`: também aceita `tratada`;
+- `Investigação`: também aceita `?` e `investigando`.
+
+Estados podem ser escritos como subseção:
+
+```medievo
+> Em tratamento:
+J18 Pneumonia nasocomial / bronco aspirativa
+```
+
+Ou inline:
+
+```medievo
+I90 Derrame pleural a direita- PO drenagem 05/06 em tratamento
+R13 Disfagia?
+```
+
+Se um item tiver estado por subseção e também estado inline, o estado inline vence e o item gera erro por possuir mais de um estado.
+
+Regras de data:
+
+- diagnósticos `Ativo`, `Em tratamento` ou `Investigação` podem ter data simples, mas não período;
+- diagnóstico `Tratado` com data deve usar período;
+- diagnóstico `Tratado` com data simples gera warning.
+
+Exemplo:
+
+```medievo
+# DIAGNOSTICO
+R09 Hipoxemia a/e (cissurite em lobo inferior direito)
+J98.1 Atelectasia crônica
+R13 Disfagia? (precisa de exames para saber ao certo)
+> Em tratamento:
+J18 Pneumonia nasocomial / bronco aspirativa
+I90 Derrame pleural a direita- PO drenagem 05/06
+> Tratado: E87.6 Hipocalemia 01/06-05/06
+```

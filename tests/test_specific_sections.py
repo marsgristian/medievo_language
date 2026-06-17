@@ -6,6 +6,7 @@ from med_evo import compile_medievo
 from med_evo.models import ClinicalItem, ClinicalSection, CompilerDiagnostic
 from med_evo.sections import (
     BaseSpecificSectionParser,
+    DiagnosticoSection,
     InformacoesPacienteSection,
     ItemParserConfig,
     SectionParserConfig,
@@ -175,6 +176,188 @@ def test_informacoes_paciente_warns_when_weight_has_no_date():
 
     assert "informacoes_paciente_weight_without_date" in {
         diagnostic.code for diagnostic in compiled.warnings()
+    }
+
+
+def test_diagnostico_parses_free_text_items_with_cid_state_and_dates():
+    registry = SectionRegistry([DiagnosticoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# DIAGNÓSTICO",
+                "R09 Hipoxemia a/e (cissurite em lobo inferior direito)",
+                "J98.1 Atelectasia crônica",
+                "R13 Disfagia? (precisa de exames para saber ao certo)",
+                "> Em tratamento:",
+                "J18 Pneumonia nasocomial / bronco aspirativa",
+                "I90 Derrame pleural a direita- PO drenagem 05/06",
+                "> Tratado: E87.6 Hipocalemia 01/06-05/06",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    result = compiled.processed_sections["DIAGNÓSTICO"][0]
+    items = result.data["items"]
+
+    assert items[0]["cid"] == "R09"
+    assert items[0]["cid_version"] == "CID-10"
+    assert items[0]["diagnostico"] == "Hipoxemia a/e"
+    assert items[0]["estado"] == "Ativo"
+    assert items[0]["commented_values"] == ["cissurite em lobo inferior direito"]
+
+    assert items[2]["diagnostico"] == "Disfagia"
+    assert items[2]["estado"] == "Investigação"
+
+    assert items[4]["estado"] == "Em tratamento"
+    assert items[4]["diagnostico"] == "Derrame pleural a direita- PO drenagem"
+
+    assert items[5]["estado"] == "Tratado"
+    assert items[5]["data"] is not None
+
+
+def test_diagnostico_accepts_case_accent_and_plural_aliases():
+    registry = SectionRegistry([DiagnosticoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# hipoteses diagnosticas",
+                "R09 Hipoxemia",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    assert "DIAGNÓSTICO" in compiled.processed_sections
+
+
+def test_diagnostico_parses_icd11_code():
+    registry = SectionRegistry([DiagnosticoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# DIAGNOSTICO",
+                "1A00 Cólera",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    item = compiled.processed_sections["DIAGNÓSTICO"][0].data["items"][0]
+    assert item["cid"] == "1A00"
+    assert item["cid_version"] == "CID-11"
+    assert item["diagnostico"] == "Cólera"
+
+
+def test_diagnostico_requires_section():
+    registry = SectionRegistry([DiagnosticoSection()])
+    compiled = compile_medievo("# MEDICAMENTOS:\nDipirona\n", section_registry=registry)
+
+    assert "diagnostico_missing_section" in {diagnostic.code for diagnostic in compiled.errors()}
+
+
+def test_diagnostico_rejects_key_value_items():
+    registry = SectionRegistry([DiagnosticoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# DIAGNOSTICO",
+                "HD: Pneumonia",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "diagnostico_key_value_not_allowed" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+
+
+def test_diagnostico_requires_diagnosis_text_after_parseable_fields():
+    registry = SectionRegistry([DiagnosticoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# DIAGNOSTICO",
+                "R09 ?",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "diagnostico_missing_diagnosis" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+
+
+def test_diagnostico_warns_about_possible_invalid_cid_without_removing_it():
+    registry = SectionRegistry([DiagnosticoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# DIAGNOSTICO",
+                "R9999 Hipoxemia",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "diagnostico_possible_invalid_cid" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+    item = compiled.processed_sections["DIAGNÓSTICO"][0].data["items"][0]
+    assert item["cid"] is None
+    assert item["diagnostico"] == "R9999 Hipoxemia"
+
+
+def test_diagnostico_data_period_rules_follow_state():
+    registry = SectionRegistry([DiagnosticoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# DIAGNOSTICO",
+                "J18 Pneumonia 01/06-05/06",
+                "E87.6 Hipocalemia tratada 01/06",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "diagnostico_date_period_only_for_treated" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+    assert "diagnostico_treated_date_should_be_period" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+
+
+def test_diagnostico_inline_state_wins_and_multiple_states_errors():
+    registry = SectionRegistry([DiagnosticoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# DIAGNOSTICO",
+                "> Tratado:",
+                "J18 Pneumonia em tratamento",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    item = compiled.processed_sections["DIAGNÓSTICO"][0].data["items"][0]
+    assert item["estado"] == "Em tratamento"
+    assert "diagnostico_multiple_states_for_item" in {
+        diagnostic.code for diagnostic in compiled.errors()
     }
 
 

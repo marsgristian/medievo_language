@@ -12,6 +12,7 @@ from .models import (
 from .sections import (
     AssociatedErrorsConfig,
     BaseSpecificSectionParser,
+    DiagnosticoSection,
     ItemParserConfig,
     NormalizationConfig,
     SectionParserConfig,
@@ -30,6 +31,7 @@ __all__ = [
     "ClinicalSection",
     "ClinicalValue",
     "CompilerDiagnostic",
+    "DiagnosticoSection",
     "ItemParserConfig",
     "MinimalmedievoCompiler",
     "NormalizationConfig",

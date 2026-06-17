@@ -8,11 +8,12 @@ import streamlit as st
 from med_evo import compile_medievo
 from med_evo.models import ClinicalDocument
 
-from med_evo.sections import InformacoesPacienteSection, SectionRegistry
+from med_evo.sections import DiagnosticoSection, InformacoesPacienteSection, SectionRegistry
 
 SECTION_REGISTRY = SectionRegistry(
     [
         InformacoesPacienteSection(),
+        DiagnosticoSection(),
     ]
 )
 
@@ -25,6 +26,12 @@ Nome: Maria Silva | Idade: 2 anos 2 meses 2 dias
 Data da internação: 10/06/2026
 Sexo: feminino
 Peso: 56,987 kg
+
+# DIAGNOSTICO
+R09 Hipoxemia a/e (cissurite em lobo inferior direito)
+R13 Disfagia? (precisa de exames para saber ao certo)
+> Em tratamento:
+J18 Pneumonia nasocomial / bronco aspirativa
 
 # EXAMES: laboratoriais (últimas 24h)
 Hb: 10,2; Leuco: 12000; Plaquetas: 250000 | PCR: 45
