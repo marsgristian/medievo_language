@@ -5,11 +5,14 @@ from datetime import datetime
 from med_evo import compile_medievo
 from med_evo.models import ClinicalItem, ClinicalSection, CompilerDiagnostic
 from med_evo.sections import (
+    BalancoHidricoSection,
     BaseSpecificSectionParser,
+    ControlesSection,
     DiagnosticoSection,
     InformacoesPacienteSection,
     ItemParserConfig,
     MedicamentosSection,
+    PrismivSection,
     SectionParserConfig,
     SectionRegistry,
     SubsectionParserConfig,
@@ -513,6 +516,320 @@ def test_medicamentos_inline_state_wins_and_multiple_states_errors():
     assert "medicamentos_multiple_states_for_item" in {
         diagnostic.code for diagnostic in compiled.errors()
     }
+
+
+def test_balanco_hidrico_parses_section_value_bh_and_required_items():
+    registry = SectionRegistry([BalancoHidricoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "#BALANÇO HÍDRICO: +369,40 ml",
+                "Entradas: 897,4 ml | Saídas: 528 ml | Diurese: 2,98 ml/kg/h",
+                "Evacuações: 2 ml",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    result = compiled.processed_sections["BALANÇO HÍDRICO"][0]
+    assert result.data["entradas"]["value"] == 897.4
+    assert result.data["saidas"]["value"] == 528.0
+    assert result.data["bh"]["value"] == 369.4
+    assert result.data["bh"]["sign"] == "+"
+    assert result.data["bh_source"] == "section_value"
+    assert result.data["diurese"]["unit"] == "ml/kg/h"
+    assert result.data["extras"]["evacuacoes"]["value"] == 2.0
+
+
+def test_balanco_hidrico_calculates_missing_bh_with_warning():
+    registry = SectionRegistry([BalancoHidricoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# BALANCO HIDRICO",
+                "Entradas: 100 ml | Saídas: 40 ml | Diurese: 2 ml/kg/h",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "balanco_hidrico_bh_missing_calculated" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+    assert not compiled.errors()
+    result = compiled.processed_sections["BALANÇO HÍDRICO"][0]
+    assert result.data["bh"]["value"] == 60.0
+    assert result.data["bh"]["sign"] == "+"
+    assert result.data["bh_source"] == "calculated"
+
+
+def test_balanco_hidrico_warns_and_does_not_calculate_when_units_differ():
+    registry = SectionRegistry([BalancoHidricoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# BALANCO HIDRICO",
+                "Entradas: 100 ml | Saídas: 2 ml/kg/h | Diurese: 2 ml/kg/h",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "balanco_hidrico_entry_exit_unit_mismatch" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+    assert "balanco_hidrico_missing_required_item" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+    result = compiled.processed_sections["BALANÇO HÍDRICO"][0]
+    assert result.data["bh"] is None
+
+
+def test_balanco_hidrico_errors_when_bh_is_discrepant_at_one_decimal():
+    registry = SectionRegistry([BalancoHidricoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# BALANCO HIDRICO: +58,8 ml",
+                "Entradas: 100 ml | Saídas: 40 ml | Diurese: 2 ml/kg/h",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "balanco_hidrico_bh_discrepant" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+
+
+def test_balanco_hidrico_requires_sign_for_nonzero_bh_but_not_zero():
+    registry = SectionRegistry([BalancoHidricoSection()])
+    nonzero = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# BALANCO HIDRICO: 60 ml",
+                "Entradas: 100 ml | Saídas: 40 ml | Diurese: 2 ml/kg/h",
+            ]
+        ),
+        section_registry=registry,
+    )
+    zero = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# BALANCO HIDRICO: 0 ml",
+                "Entradas: 40 ml | Saídas: 40 ml | Diurese: 2 ml/kg/h",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "balanco_hidrico_bh_sign_required" in {
+        diagnostic.code for diagnostic in nonzero.errors()
+    }
+    assert "balanco_hidrico_bh_sign_required" not in {
+        diagnostic.code for diagnostic in zero.errors()
+    }
+
+
+def test_balanco_hidrico_requires_missing_items():
+    registry = SectionRegistry([BalancoHidricoSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# BALANCO HIDRICO",
+                "Entradas: 100 ml",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    codes = [diagnostic.code for diagnostic in compiled.errors()]
+    assert codes.count("balanco_hidrico_missing_required_item") == 3
+
+
+def test_prismiv_parses_percent_and_optional_prismiii_fields():
+    registry = SectionRegistry([PrismivSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "#PRISMIV:90%",
+                "PRISMIII: Neurológico: 90; Não Neurológico: 90",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    result = compiled.processed_sections["PRISMIV"][0]
+    assert result.data["prismiv"] == "90%"
+    assert result.data["prismiii"] == {
+        "neurologico": "90",
+        "nao_neurologico": "90",
+    }
+
+
+def test_prismiv_requires_percent_section_value():
+    registry = SectionRegistry([PrismivSection()])
+    missing = compile_medievo("# PRISMIV\n", section_registry=registry)
+    invalid = compile_medievo("# PRISMIV: 90\n", section_registry=registry)
+
+    assert "prismiv_missing_section_value" in {
+        diagnostic.code for diagnostic in missing.errors()
+    }
+    assert "prismiv_invalid_section_value" in {
+        diagnostic.code for diagnostic in invalid.errors()
+    }
+
+
+def test_prismiv_prismiii_fields_are_required_when_item_exists():
+    registry = SectionRegistry([PrismivSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "#PRISMIV:90%",
+                "PRISMIII: Neurológico: 90",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "prismiv_prismiii_missing_field" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+
+
+def test_prismiv_rejects_unexpected_items():
+    registry = SectionRegistry([PrismivSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "#PRISMIV:90%",
+                "Outro: valor",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "prismiv_unexpected_item" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+
+
+def test_controles_parses_numeric_textual_and_basic_controls():
+    registry = SectionRegistry([ControlesSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# CONTROLES",
+                "FC: 59-180 bpm | FR: 25-59 irpm | Tax: 36,5-39,2°C",
+                "Dist. resp: N 16/06",
+                "Glasgow: 15 16/06",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    assert "controles_missing_unit" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+    items = compiled.processed_sections["CONTROLES"][0].data["items"]
+    assert items[0]["tipo"] == "numerico"
+    assert items[0]["min"] == 59.0
+    assert items[0]["max"] == 180.0
+    assert items[0]["unidade"] == "bpm"
+    assert items[0]["periodo"] == "ultimas_24h"
+    assert items[3]["tipo"] == "textual"
+    assert items[3]["medicao"] == "N"
+    assert items[3]["data"] is not None
+    assert items[4]["tipo"] == "basico"
+    assert items[4]["medicao"] == 15.0
+
+
+def test_controles_accepts_sinais_vitais_alias():
+    registry = SectionRegistry([ControlesSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# SINAIS VITAIS",
+                "FC: 59-180 bpm",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    assert "CONTROLES" in compiled.processed_sections
+
+
+def test_controles_basic_requires_date():
+    registry = SectionRegistry([ControlesSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# CONTROLES",
+                "Glasgow: 15",
+                "Dist. resp: N",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert [diagnostic.code for diagnostic in compiled.errors()].count("controles_basic_date_required") == 2
+    assert "controles_missing_unit" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+
+
+def test_controles_rejects_free_text_items():
+    registry = SectionRegistry([ControlesSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# CONTROLES",
+                "Paciente estável",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "controles_key_value_required" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+
+
+def test_controles_numeric_range_can_have_explicit_period():
+    registry = SectionRegistry([ControlesSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# CONTROLES",
+                "FC: 10/06-16/06 59-180 bpm",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    item = compiled.processed_sections["CONTROLES"][0].data["items"][0]
+    assert item["tipo"] == "numerico"
+    assert item["periodo"] is not None
+    assert item["periodo"] != "ultimas_24h"
 
 
 def test_specific_section_registry_preserves_repeated_canonical_sections():

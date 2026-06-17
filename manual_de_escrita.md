@@ -478,3 +478,130 @@ Dipirona: 14 mg/kg/dose; ACM; se dor ou febre
 > Suspenso:
 Lorazepam: 0,1 mg/kg/dose; 4/4h; 04/06-12/06
 ```
+
+### BALANÇO HÍDRICO
+
+A seção é obrigatória.
+
+Nomes aceitos:
+
+- `Balanço hídrico`
+- `Balanco hidrico`
+
+Os itens devem usar `key: value`.
+
+Itens obrigatórios:
+
+- `Entradas`
+- `Saídas`
+- `BH`
+- `Diurese`
+
+O `BH` pode vir como valor da seção:
+
+```medievo
+# BALANÇO HÍDRICO: +369,40 ml
+Entradas: 897,4 ml | Saídas: 528 ml | Diurese: 2,98 ml/kg/h
+```
+
+Ou como item:
+
+```medievo
+# BALANÇO HÍDRICO
+Entradas: 897,4 ml | Saídas: 528 ml | BH: +369,40 ml | Diurese: 2,98 ml/kg/h
+```
+
+Outros itens `key: value` são permitidos.
+
+```medievo
+Evacuações: 2 ml | Vômitos: 30 ml
+```
+
+Valores aceitam `ml` e `ml/kg/h`.
+
+Regras:
+
+- `BH` diferente de zero deve ter sinal `+` ou `-`;
+- `BH` igual a zero pode ser escrito sem sinal;
+- se `Entradas` e `Saídas` existirem, mas `BH` não vier, o sistema gera warning e calcula automaticamente;
+- se `Entradas` e `Saídas` tiverem unidades diferentes, o sistema gera warning e não calcula o `BH`;
+- quando `BH` vier informado, a unidade deve ser a mesma de `Entradas` e `Saídas`;
+- `BH` informado deve bater com `Entradas - Saídas`;
+- a comparação usa precisão de uma casa decimal;
+- se o cálculo discrepar, gera erro: `BH discrepante do cálculo, por favor verifique os valores de entradas e saídas`.
+
+Exemplo com cálculo automático:
+
+```medievo
+# BALANÇO HÍDRICO
+Entradas: 100 ml | Saídas: 40 ml | Diurese: 2 ml/kg/h
+```
+
+Nesse caso, o `BH` calculado é `+60 ml`.
+
+### PRISMIV
+
+A seção é obrigatória e deve conter valor percentual no cabeçalho.
+
+```medievo
+# PRISMIV: 90%
+```
+
+Se o valor da seção estiver vazio, gera erro com a mensagem `por favor calcule o prism`.
+
+O item `PRISMIII` é opcional. Quando vier, deve conter os campos `Neurológico` e `Não Neurológico`.
+
+```medievo
+# PRISMIV: 90%
+PRISMIII: Neurológico: 90; Não Neurológico: 90
+```
+
+A seção não aceita outros itens.
+
+### CONTROLES
+
+A seção é obrigatória.
+
+Nomes aceitos:
+
+- `Controles`
+- `Sinais vitais`
+
+Os itens devem usar `key: value`, e qualquer chave é aceita se o valor seguir um dos formatos abaixo.
+
+Controle numérico:
+
+```medievo
+FC: 59-180 bpm
+FR: 25-59 irpm
+Tax: 36,5-39,2°C
+```
+
+O controle numérico tem medição mínima, medição máxima e unidade. A unidade é recomendada; se não vier, gera warning. Pode ter período associado; se não vier, assume-se o período das últimas 24h.
+
+Controle básico:
+
+```medievo
+HGT: 99 mg/dL 16/06
+Glasgow: 15 16/06
+```
+
+O controle básico tem uma medição e data obrigatória. A unidade é recomendada; se não vier, gera warning.
+
+Controle textual:
+
+```medievo
+Dist. resp: N 16/06
+```
+
+Controle textual também deve ter data.
+
+Exemplo:
+
+```medievo
+# CONTROLES
+FC: 59-180 bpm | FR: 25-59 irpm | Tax: 36,5-39,2°C
+PAS: 77-137 mmHg | PAD: 45-101 mmHg | PAM: 55-113 mmHg
+HGT: 99-99 mg/dL
+Dist. resp: N 16/06
+```

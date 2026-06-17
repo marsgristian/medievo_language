@@ -11,11 +11,14 @@ from .models import (
 )
 from .sections import (
     AssociatedErrorsConfig,
+    BalancoHidricoSection,
     BaseSpecificSectionParser,
+    ControlesSection,
     DiagnosticoSection,
     ItemParserConfig,
     MedicamentosSection,
     NormalizationConfig,
+    PrismivSection,
     SectionParserConfig,
     SectionProcessingResult,
     SectionRegistry,
@@ -24,6 +27,7 @@ from .sections import (
 
 __all__ = [
     "AssociatedErrorsConfig",
+    "BalancoHidricoSection",
     "BaseSpecificSectionParser",
     "ClinicalDate",
     "ClinicalDatePeriod",
@@ -32,11 +36,13 @@ __all__ = [
     "ClinicalSection",
     "ClinicalValue",
     "CompilerDiagnostic",
+    "ControlesSection",
     "DiagnosticoSection",
     "ItemParserConfig",
     "MedicamentosSection",
     "MinimalmedievoCompiler",
     "NormalizationConfig",
+    "PrismivSection",
     "SectionParserConfig",
     "SectionProcessingResult",
     "SectionRegistry",

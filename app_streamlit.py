@@ -8,13 +8,24 @@ import streamlit as st
 from med_evo import compile_medievo
 from med_evo.models import ClinicalDocument
 
-from med_evo.sections import DiagnosticoSection, InformacoesPacienteSection, MedicamentosSection, SectionRegistry
+from med_evo.sections import (
+    BalancoHidricoSection,
+    ControlesSection,
+    DiagnosticoSection,
+    InformacoesPacienteSection,
+    MedicamentosSection,
+    PrismivSection,
+    SectionRegistry,
+)
 
 SECTION_REGISTRY = SectionRegistry(
     [
         InformacoesPacienteSection(),
         DiagnosticoSection(),
         MedicamentosSection(),
+        BalancoHidricoSection(),
+        PrismivSection(),
+        ControlesSection(),
     ]
 )
 
@@ -33,6 +44,16 @@ R09 Hipoxemia a/e (cissurite em lobo inferior direito)
 R13 Disfagia? (precisa de exames para saber ao certo)
 > Em tratamento:
 J18 Pneumonia nasocomial / bronco aspirativa
+
+# BALANCO HIDRICO: +369,4 ml
+Entradas: 897,4 ml | Saidas: 528 ml | Diurese: 2,98 ml/kg/h
+
+# PRISMIV: 90%
+PRISMIII: Neurologico: 90; Nao Neurologico: 90
+
+# CONTROLES
+FC: 59-180 bpm | FR: 25-59 irpm | Tax: 36,5-39,2 C
+Dist. resp: N 16/06
 
 # EXAMES: laboratoriais (últimas 24h)
 Hb: 10,2; Leuco: 12000; Plaquetas: 250000 | PCR: 45
