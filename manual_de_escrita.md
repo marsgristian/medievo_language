@@ -282,3 +282,52 @@ Hb: 10
 ```
 
 Nesse caso, o item recebe `state="Prévio"` mesmo sem parser específico.
+
+## 12. Regras de seções específicas
+
+Além da estrutura mínima da linguagem, algumas seções possuem regras próprias de escrita e validação.
+
+### INFORMAÇÕES DO PACIENTE
+
+A seção é obrigatória e deve conter itens em formato `key: value`.
+
+Itens obrigatórios:
+
+- `Nome`
+- `Idade`
+- `Data internacao`
+- `Sexo`
+- `Peso`
+
+Chaves desconhecidas são permitidas nessa seção. Use-as quando houver uma informação relevante do paciente que ainda não tenha campo estruturado específico.
+
+O peso deve conter um número parseável em formato pt-BR.
+
+```medievo
+Peso: 56,987 kg
+```
+
+Sempre que possível, escreva a data de medição junto do peso.
+
+```medievo
+Peso: 16/06 56,987 kg
+Peso: 16/06/2026 56,987 kg
+```
+
+Regras do peso:
+
+- peso medido exatamente 7 dias antes da evolução, ou há mais tempo, gera erro;
+- peso sem data gera warning;
+- quando o peso não tem data associada, assume-se que foi medido na data da evolução.
+
+Exemplo completo:
+
+```medievo
+# INFORMACOES DO PACIENTE
+Nome: Maria Silva
+Idade: 2 anos 3 meses
+Data internacao: 10/06/2026
+Sexo: feminino
+Peso: 16/06 56,987 kg
+Leito: 123
+```

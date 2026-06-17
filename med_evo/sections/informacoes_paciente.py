@@ -7,6 +7,8 @@ from datetime import datetime
 from typing import Any
 
 from med_evo.models import (
+    ClinicalDate,
+    ClinicalDatePeriod,
     ClinicalDocument,
     ClinicalItem,
     ClinicalSection,
@@ -114,7 +116,6 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
         allow_free_text=False,
         require_key=True,
         allow_children=True,
-        accepted_keys=ACCEPTED_KEYS,
     )
 
     normalization = NormalizationConfig(
@@ -205,6 +206,38 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
                             raw_text=item.raw_text,
                         )
                     )
+                if item.date is None:
+                    diagnostics.append(
+                        CompilerDiagnostic(
+                            severity="warning",
+                            code="informacoes_paciente_weight_without_date",
+                            message=(
+                                "Peso sem data associada; assume-se que foi medido na data desta evolucao."
+                            ),
+                            phase="semantic",
+                            line=item.line,
+                            section=section.section_name,
+                            raw_text=item.raw_text,
+                        )
+                    )
+                else:
+                    measurement_datetime = self._weight_measurement_datetime(item.date)
+                    if (
+                        document.reference_datetime is not None
+                        and measurement_datetime is not None
+                        and (document.reference_datetime.date() - measurement_datetime.date()).days >= 7
+                    ):
+                        diagnostics.append(
+                            CompilerDiagnostic(
+                                severity="error",
+                                code="informacoes_paciente_weight_measurement_too_old",
+                                message="Peso deve ter sido medido ha menos de 7 dias.",
+                                phase="semantic",
+                                line=item.line,
+                                section=section.section_name,
+                                raw_text=item.raw_text,
+                            )
+                        )
 
         return diagnostics
 
@@ -364,6 +397,15 @@ class InformacoesPacienteSection(BaseSpecificSectionParser):
             return float(normalized)
         except ValueError:
             return None
+
+    def _weight_measurement_datetime(self, date_value: Any) -> datetime | None:
+        if isinstance(date_value, ClinicalDate):
+            return date_value.value
+
+        if isinstance(date_value, ClinicalDatePeriod):
+            return date_value.end.value
+
+        return None
 
     def _format_age(self, idade: dict[str, int]) -> str:
         parts: list[str] = []

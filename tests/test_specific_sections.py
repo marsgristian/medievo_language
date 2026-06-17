@@ -111,6 +111,73 @@ def test_informacoes_paciente_processes_age_without_mutating_ast():
     assert result.normalized["nome"] == "Maria Silva"
 
 
+def test_informacoes_paciente_allows_unknown_item_keys():
+    registry = SectionRegistry([InformacoesPacienteSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# INFORMACOES DO PACIENTE",
+                "Nome: Maria Silva",
+                "Idade: 2 anos",
+                "Data internacao: 10/06/2026",
+                "Sexo: feminino",
+                "Peso: 16/06 56,987 kg",
+                "Leito: 123",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "informacoes_paciente_unknown_item_key" not in {
+        diagnostic.code for diagnostic in compiled.diagnostics
+    }
+
+
+def test_informacoes_paciente_errors_when_weight_is_seven_days_old():
+    registry = SectionRegistry([InformacoesPacienteSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 17/06/2026",
+                "# INFORMACOES DO PACIENTE",
+                "Nome: Maria Silva",
+                "Idade: 2 anos",
+                "Data internacao: 10/06/2026",
+                "Sexo: feminino",
+                "Peso: 10/06 56,987 kg",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "informacoes_paciente_weight_measurement_too_old" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+
+
+def test_informacoes_paciente_warns_when_weight_has_no_date():
+    registry = SectionRegistry([InformacoesPacienteSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 17/06/2026",
+                "# INFORMACOES DO PACIENTE",
+                "Nome: Maria Silva",
+                "Idade: 2 anos",
+                "Data internacao: 10/06/2026",
+                "Sexo: feminino",
+                "Peso: 56,987 kg",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "informacoes_paciente_weight_without_date" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+
+
 def test_specific_section_registry_preserves_repeated_canonical_sections():
     registry = SectionRegistry([ExamesSection()])
     compiled = compile_medievo(
