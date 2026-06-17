@@ -402,3 +402,79 @@ J18 Pneumonia nasocomial / bronco aspirativa
 I90 Derrame pleural a direita- PO drenagem 05/06
 > Tratado: E87.6 Hipocalemia 01/06-05/06
 ```
+
+### MEDICAMENTOS
+
+A seção é obrigatória.
+
+Nomes aceitos:
+
+- `Medicamentos`
+- `Medicações`
+- `Medicacoes`
+- `Medicamento`
+
+Se o paciente estiver sem medicamentos, escreva isso no valor da seção:
+
+```medievo
+# MEDICAMENTOS: sem medicamentos
+```
+
+Uma seção vazia sem esse marcador explícito gera warning.
+
+Os itens devem usar `key: value`. A key é o nome do medicamento.
+
+```medievo
+Clonidina: 3 mcg/kg/dose; 6/6h; Di 09/06
+Dipirona: 14 mg/kg/dose; ACM; se dor ou febre
+Simeticona: 7 gotas; 6/6
+```
+
+Cada item pode conter:
+
+- `dose`: opcional, reconhecida como número seguido de unidade;
+- `intervalo`: opcional, em formatos como `6/6h`, `6/6`, `2x/dia` ou `1/dia`;
+- `data`: opcional, como data ou período; `Di` antes da data é aceito, mas não obrigatório;
+- `extras`: todo valor que não for dose, intervalo, data ou estado.
+
+Via, `ACM`, `SN`, `se necessário`, diluições e observações devem ficar em `extras`.
+
+Estados aceitos:
+
+- `Ativo`: também aceita `ativa` e `atual`; é o padrão quando o estado é omitido;
+- `Suspenso`: também aceita `fez uso`, `anterior` e `inativo`.
+
+Estados podem ser escritos como subseção:
+
+```medievo
+> Suspenso:
+Lorazepam: 0,1 mg/kg/dose; 4/4h; 04/06-12/06
+```
+
+Ou inline:
+
+```medievo
+Metadona: 0,15 mg/kg/dose; 4/4h; anterior; 04/06-12/06
+```
+
+Se um item tiver estado por subseção e também estado inline, o estado inline vence e o item gera erro por possuir mais de um estado.
+
+Regras:
+
+- texto livre na seção gera erro;
+- medicamento sem intervalo e sem extras gera warning;
+- medicamento suspenso deve ter período de uso;
+- medicamento suspenso sem data gera erro;
+- medicamento suspenso com data simples gera warning;
+- medicamento suspenso com período fica válido.
+
+Exemplo:
+
+```medievo
+# MEDICAMENTOS
+Clonidina: 3 mcg/kg/dose; 6/6h; Di 09/06; VS
+Furosemida: 1 mg/kg/dose; 12/12h; ACM
+Dipirona: 14 mg/kg/dose; ACM; se dor ou febre
+> Suspenso:
+Lorazepam: 0,1 mg/kg/dose; 4/4h; 04/06-12/06
+```

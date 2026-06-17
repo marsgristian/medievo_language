@@ -8,12 +8,13 @@ import streamlit as st
 from med_evo import compile_medievo
 from med_evo.models import ClinicalDocument
 
-from med_evo.sections import DiagnosticoSection, InformacoesPacienteSection, SectionRegistry
+from med_evo.sections import DiagnosticoSection, InformacoesPacienteSection, MedicamentosSection, SectionRegistry
 
 SECTION_REGISTRY = SectionRegistry(
     [
         InformacoesPacienteSection(),
         DiagnosticoSection(),
+        MedicamentosSection(),
     ]
 )
 

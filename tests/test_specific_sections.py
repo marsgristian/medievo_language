@@ -9,6 +9,7 @@ from med_evo.sections import (
     DiagnosticoSection,
     InformacoesPacienteSection,
     ItemParserConfig,
+    MedicamentosSection,
     SectionParserConfig,
     SectionRegistry,
     SubsectionParserConfig,
@@ -357,6 +358,159 @@ def test_diagnostico_inline_state_wins_and_multiple_states_errors():
     item = compiled.processed_sections["DIAGNÓSTICO"][0].data["items"][0]
     assert item["estado"] == "Em tratamento"
     assert "diagnostico_multiple_states_for_item" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+
+
+def test_medicamentos_parses_key_value_items_with_dose_interval_date_and_extras():
+    registry = SectionRegistry([MedicamentosSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# MEDICAMENTOS",
+                "Clonidina: 3 mcg/kg/dose; 6/6h; Di 09/06; VS",
+                "Dipirona: 14 mg/kg/dose; ACM; se dor ou febre",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    items = compiled.processed_sections["MEDICAMENTOS"][0].data["items"]
+
+    assert items[0]["nome"] == "Clonidina"
+    assert items[0]["dose"] == "3 mcg/kg/dose"
+    assert items[0]["intervalo"] == "6/6h"
+    assert items[0]["data"] is not None
+    assert items[0]["estado"] == "Ativo"
+    assert items[0]["extras"] == ["VS"]
+
+    assert items[1]["dose"] == "14 mg/kg/dose"
+    assert items[1]["intervalo"] is None
+    assert items[1]["extras"] == ["ACM", "se dor ou febre"]
+
+
+def test_medicamentos_accepts_aliases_and_empty_marker():
+    registry = SectionRegistry([MedicamentosSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# medicacoes: sem medicamentos",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    assert not compiled.warnings()
+    result = compiled.processed_sections["MEDICAMENTOS"][0]
+    assert result.data["sem_medicamentos"] is True
+    assert result.data["items"] == []
+
+
+def test_medicamentos_warns_when_empty_without_explicit_marker():
+    registry = SectionRegistry([MedicamentosSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# MEDICAMENTOS",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "medicamentos_empty_without_explicit_marker" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+
+
+def test_medicamentos_requires_section():
+    registry = SectionRegistry([MedicamentosSection()])
+    compiled = compile_medievo("# DIAGNOSTICO\nR09 Hipoxemia\n", section_registry=registry)
+
+    assert "medicamentos_missing_section" in {diagnostic.code for diagnostic in compiled.errors()}
+
+
+def test_medicamentos_rejects_free_text_items():
+    registry = SectionRegistry([MedicamentosSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# MEDICAMENTOS",
+                "Clonidina 3 mcg/kg/dose 6/6h",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "medicamentos_key_value_required" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+
+
+def test_medicamentos_warns_when_missing_interval_and_extra():
+    registry = SectionRegistry([MedicamentosSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# MEDICAMENTOS",
+                "Clonidina: 3 mcg/kg/dose",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "medicamentos_missing_interval_or_extra" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+
+
+def test_medicamentos_suspended_requires_period_and_warns_on_single_date():
+    registry = SectionRegistry([MedicamentosSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# MEDICAMENTOS",
+                "> Suspenso:",
+                "Lorazepam: 0,1 mg/kg/dose; 4/4h",
+                "Metadona: 0,15 mg/kg/dose; 4/4h; 04/06",
+                "Furosemida: 1 mg/kg/dose; 12/12h; 04/06-10/06",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert "medicamentos_suspended_missing_period" in {
+        diagnostic.code for diagnostic in compiled.errors()
+    }
+    assert "medicamentos_suspended_date_should_be_period" in {
+        diagnostic.code for diagnostic in compiled.warnings()
+    }
+
+
+def test_medicamentos_inline_state_wins_and_multiple_states_errors():
+    registry = SectionRegistry([MedicamentosSection()])
+    compiled = compile_medievo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# MEDICAMENTOS",
+                "> Suspenso:",
+                "Clonidina: 3 mcg/kg/dose; 6/6h; atual",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    item = compiled.processed_sections["MEDICAMENTOS"][0].data["items"][0]
+    assert item["estado"] == "Ativo"
+    assert "medicamentos_multiple_states_for_item" in {
         diagnostic.code for diagnostic in compiled.errors()
     }
 
