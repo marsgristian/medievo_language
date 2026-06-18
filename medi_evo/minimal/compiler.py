@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from med_evo.models import (
+from medi_evo.models import (
     ClinicalDate,
     ClinicalDatePeriod,
     ClinicalDocument,
@@ -13,8 +13,8 @@ from med_evo.models import (
     SourceLine,
     Subsection,
 )
-from med_evo.parser.lark_parser import parse_lines
-from med_evo.sections.registry import SectionRegistry
+from medi_evo.parser.lark_parser import parse_lines
+from medi_evo.sections.registry import SectionRegistry
 
 from .dates import DateMatch, extract_reference_datetime, find_first_date, find_first_period, remove_date_span
 from .text import (
@@ -27,8 +27,8 @@ from .text import (
 )
 
 
-class MinimalmedievoCompiler:
-    """Compilador medievo mínimo.
+class MinimalMediEvoCompiler:
+    """Compilador estrutural minimo da Medi Evo language.
 
     Pipeline:
     texto -> Lark estrutural -> AST clínica genérica -> JSON/python object.
@@ -137,23 +137,23 @@ class MinimalmedievoCompiler:
         return self.section_registry.inline_states_for(section_name)
 
 
-def compile_minimal_medievo(
+def compile_minimal_medi_evo(
     text: str,
     *,
     reference_datetime: datetime | None = None,
     section_registry: SectionRegistry | None = None,
 ) -> ClinicalDocument:
-    return MinimalmedievoCompiler(section_registry=section_registry).compile(text, reference_datetime=reference_datetime)
+    return MinimalMediEvoCompiler(section_registry=section_registry).compile(text, reference_datetime=reference_datetime)
 
 
-def compile_medievo(
+def compile_medi_evo(
     text: str,
     *,
     reference_datetime: datetime | None = None,
     section_registry: SectionRegistry | None = None,
 ) -> ClinicalDocument:
     """Alias principal da linguagem mínima."""
-    return compile_minimal_medievo(text, reference_datetime=reference_datetime, section_registry=section_registry)
+    return compile_minimal_medi_evo(text, reference_datetime=reference_datetime, section_registry=section_registry)
 
 
 def _extract_reference_datetime_from_header(lines: list[SourceLine]) -> datetime | None:

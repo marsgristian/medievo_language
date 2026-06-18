@@ -5,22 +5,22 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from .minimal import compile_medievo
+from .minimal import compile_medi_evo
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Compilador medievo mínimo")
-    parser.add_argument("input", type=Path, help="Arquivo .medievo de entrada")
+    parser = argparse.ArgumentParser(description="Compilador Medi Evo language")
+    parser.add_argument("input", type=Path, help="Arquivo Medi Evo de entrada")
     parser.add_argument("--json", dest="json_out", type=Path, help="Caminho para salvar JSON compilado")
     parser.add_argument("--diagnostics", dest="diagnostics_out", type=Path, help="Caminho para salvar diagnostics.json")
     args = parser.parse_args()
 
     text = args.input.read_text(encoding="utf-8")
-    compiled = compile_medievo(text)
+    compiled = compile_medi_evo(text)
 
     error_count = len(compiled.errors())
     warning_count = len(compiled.warnings())
-    print(f"Compilação medievo concluída com {error_count} erro(s) e {warning_count} warning(s).")
+    print(f"Compilacao Medi Evo concluida com {error_count} erro(s) e {warning_count} warning(s).")
 
     for diagnostic in compiled.diagnostics:
         location = f"linha {diagnostic.line}: " if diagnostic.line else ""

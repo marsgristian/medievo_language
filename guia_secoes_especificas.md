@@ -1,4 +1,4 @@
-# Guia para implementar seções específicas medievo
+# Guia para implementar seções específicas Medi Evo language
 
 Este guia descreve como expandir a linguagem mínima sem modificar a gramática Lark nem o parser genérico.
 
@@ -9,7 +9,7 @@ A linguagem mínima monta a AST genérica.
 A seção específica interpreta a AST genérica daquela seção.
 ```
 
-Portanto, para criar uma seção nova, você cria um arquivo novo e registra a seção. Não é necessário alterar `med_evo/parser/medievo.lark`, `med_evo/minimal/compiler.py` ou os modelos base.
+Portanto, para criar uma seção nova, você cria um arquivo novo e registra a seção. Não é necessário alterar `medi_evo/parser/Medi Evo language.lark`, `medi_evo/minimal/compiler.py` ou os modelos base.
 
 ## 1. Interface conceitual
 
@@ -75,7 +75,7 @@ Isso evita diagnostics soltos e facilita testes.
 Crie um arquivo, por exemplo:
 
 ```text
-med_evo/specific_sections/medicamentos.py
+medi_evo/specific_sections/medicamentos.py
 ```
 
 Conteúdo:
@@ -85,8 +85,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_evo.models import ClinicalDocument, ClinicalItem, ClinicalSection, CompilerDiagnostic
-from med_evo.sections import (
+from medi_evo.models import ClinicalDocument, ClinicalItem, ClinicalSection, CompilerDiagnostic
+from medi_evo.sections import (
     BaseSpecificSectionParser,
     ItemParserConfig,
     NormalizationConfig,
@@ -140,12 +140,12 @@ class MedicamentosSection(BaseSpecificSectionParser):
 Uso:
 
 ```python
-from med_evo import compile_medievo
-from med_evo.sections import SectionRegistry
-from med_evo.specific_sections.medicamentos import MedicamentosSection
+from medi_evo import compile_medi_evo
+from medi_evo.sections import SectionRegistry
+from medi_evo.specific_sections.medicamentos import MedicamentosSection
 
 registry = SectionRegistry([MedicamentosSection()])
-compiled = compile_medievo(text, section_registry=registry)
+compiled = compile_medi_evo(text, section_registry=registry)
 
 print(compiled.processed_sections["MEDICAMENTOS"].data)
 ```
@@ -181,13 +181,13 @@ class ExamesSection(BaseSpecificSectionParser):
 
 Válido:
 
-```medievo
+```text
 # EXAMES: laboratoriais
 ```
 
 Inválido semanticamente:
 
-```medievo
+```text
 # EXAMES:
 ```
 
@@ -213,7 +213,7 @@ class DispositivosSection(BaseSpecificSectionParser):
 
 Se o texto tiver:
 
-```medievo
+```text
 # DISPOSITIVOS:
 > Aleatório:
 SVD: 10/06-12/06
@@ -302,7 +302,7 @@ Não altere a linguagem mínima para comportamentos clínicos específicos.
 Correto:
 
 ```text
-Adicionar med_evo/specific_sections/controles.py
+Adicionar medi_evo/specific_sections/controles.py
 ```
 
 Errado:

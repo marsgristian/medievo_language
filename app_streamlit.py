@@ -5,16 +5,25 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from med_evo import compile_medievo
-from med_evo.models import ClinicalDocument
+from medi_evo import compile_medi_evo
+from medi_evo.models import ClinicalDocument
 
-from med_evo.sections import (
+from medi_evo.sections import (
+    AporteSection,
     BalancoHidricoSection,
+    CondutaSection,
     ControlesSection,
     DiagnosticoSection,
+    DispositivosSection,
+    ExameFisicoSection,
+    ExamesImagemSection,
+    ExamesLaboratoriaisSection,
     InformacoesPacienteSection,
+    IntercorrenciasSection,
     MedicamentosSection,
+    PlanoCuidadoSection,
     PrismivSection,
+    ResumoCasoSection,
     SectionRegistry,
 )
 
@@ -26,11 +35,20 @@ SECTION_REGISTRY = SectionRegistry(
         BalancoHidricoSection(),
         PrismivSection(),
         ControlesSection(),
+        ExamesLaboratoriaisSection(),
+        ExamesImagemSection(),
+        IntercorrenciasSection(),
+        ResumoCasoSection(),
+        ExameFisicoSection(),
+        AporteSection(),
+        CondutaSection(),
+        PlanoCuidadoSection(),
+        DispositivosSection(),
     ]
 )
 
 
-EXAMPLE_PATH = Path(__file__).parent / "examples" / "minimal_valid.medievo"
+EXAMPLE_PATH = Path(__file__).parent / "examples" / "minimal_valid.medi_evo"
 
 MINIMAL_EXAMPLE = EXAMPLE_PATH.read_text(encoding="utf-8") if EXAMPLE_PATH.exists() else """EVOLUÇÃO - DIURNA - 16/06/2026 10:30
 # INFORMAÇÕES DO PACIENTE
@@ -55,7 +73,35 @@ PRISMIII: Neurologico: 90; Nao Neurologico: 90
 FC: 59-180 bpm | FR: 25-59 irpm | Tax: 36,5-39,2 C
 Dist. resp: N 16/06
 
+# EXAMES
+10/06: Hb 10,2 Leuco 12000 Plaquetas 250000 PCR 45
+
+# EXAMES DE IMAGEM
+10/06: RX torax sem consolidacoes
+
+# INTERCORRENCIAS
+10/06: Sem intercorrencias
+
+# RESUMO DO CASO
+Paciente em acompanhamento clinico.
+
+# EXAME FISICO
+BEG | AR: MV presente bilateralmente
+
+# APORTE
+Dieta enteral plena
+
+# CONDUTA
+Manter medidas atuais
+
+# PLANO DE CUIDADO
+Reavaliar exames
+
+# DISPOSITIVOS
+SNE: posicionada
+
 # EXAMES: laboratoriais (últimas 24h)
+# LEGADO
 Hb: 10,2; Leuco: 12000; Plaquetas: 250000 | PCR: 45
 > Prévio: 10/06 Hb: 9,8; PCR: 80
 # MEDICAMENTOS:
@@ -93,9 +139,9 @@ def diagnostics_dataframe(compiled: ClinicalDocument) -> pd.DataFrame:
     )
 
 
-st.set_page_config(page_title="medievo mínimo", layout="wide")
-st.title("medievo mínimo")
-st.caption("DSL estrutural para evoluções médicas: gramática pequena, AST genérica e seções específicas plugáveis.")
+st.set_page_config(page_title="Medi Evo language", layout="wide")
+st.title("Medi Evo language")
+st.caption("Linguagem para evolucoes medicas semi-estruturadas e validaveis.")
 
 with st.sidebar:
     st.header("Regras rápidas")
@@ -111,14 +157,14 @@ with st.sidebar:
     )
     st.markdown("[Manual de escrita](manual_de_escrita.md) e [guia de seções específicas](guia_secoes_especificas.md) ficam na raiz do projeto.")
 
-text = st.text_area("Fonte medievo", value=MINIMAL_EXAMPLE, height=520)
+text = st.text_area("Fonte Medi Evo", value=MINIMAL_EXAMPLE, height=520)
 
 if st.button("Compilar", type="primary"):
-    st.session_state["compiled"] = compile_medievo(text, section_registry=SECTION_REGISTRY)
+    st.session_state["compiled"] = compile_medi_evo(text, section_registry=SECTION_REGISTRY)
 
 compiled = st.session_state.get("compiled")
 if compiled is None:
-    st.info("Cole ou edite uma evolução medievo e clique em Compilar.")
+    st.info("Cole ou edite uma evolucao Medi Evo e clique em Compilar.")
     st.stop()
 
 error_count = len(compiled.errors())
@@ -168,7 +214,7 @@ with tabs[3]:
 with tabs[4]:
     rows = []
     for name, source, expected_code in MINIMAL_TEST_CASES:
-        result = compile_medievo(source)
+        result = compile_medi_evo(source)
         found_codes = [diagnostic.code for diagnostic in result.diagnostics]
         passed = expected_code in found_codes if expected_code else not result.errors()
         rows.append(
@@ -188,8 +234,8 @@ with tabs[5]:
 A linguagem mínima não deve saber regras clínicas específicas. Para expandir, crie uma classe que herda de `BaseSpecificSectionParser`, declare seus configs e registre no `SectionRegistry`.
 
 ```python
-from med_evo import compile_medievo
-from med_evo.sections import (
+from medi_evo import compile_medi_evo
+from medi_evo.sections import (
     BaseSpecificSectionParser,
     ItemParserConfig,
     SectionParserConfig,
@@ -210,7 +256,7 @@ class MedicamentosSection(BaseSpecificSectionParser):
     item_parser = ItemParserConfig(require_key=False, allow_free_text=True)
 
 registry = SectionRegistry([MedicamentosSection()])
-compiled = compile_medievo(text, section_registry=registry)
+compiled = compile_medi_evo(text, section_registry=registry)
 ```
 """
     )

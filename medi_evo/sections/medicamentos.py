@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from med_evo.models import (
+from medi_evo.models import (
     ClinicalDate,
     ClinicalDatePeriod,
     ClinicalDocument,
@@ -14,7 +14,7 @@ from med_evo.models import (
     ClinicalSection,
     CompilerDiagnostic,
 )
-from med_evo.sections.base import (
+from medi_evo.sections.base import (
     AssociatedErrorsConfig,
     BaseSpecificSectionParser,
     ItemParserConfig,
@@ -23,8 +23,8 @@ from med_evo.sections.base import (
     SubsectionParserConfig,
     normalize_name,
 )
-from med_evo.minimal.dates import parse_clinical_date
-from med_evo.minimal.text import find_structural_colon, split_top_level
+from medi_evo.minimal.dates import parse_clinical_date
+from medi_evo.minimal.text import find_structural_colon, split_top_level
 
 
 @dataclass(frozen=True, slots=True)

@@ -5,13 +5,13 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
-from med_evo.models import (
+from medi_evo.models import (
     ClinicalDocument,
     ClinicalItem,
     ClinicalSection,
     CompilerDiagnostic,
 )
-from med_evo.sections.base import (
+from medi_evo.sections.base import (
     AssociatedErrorsConfig,
     BaseSpecificSectionParser,
     ItemParserConfig,
@@ -44,7 +44,7 @@ class BalancoHidricoSection(BaseSpecificSectionParser):
     REQUIRED_KEYS = ("entradas", "saidas", "bh", "diurese")
 
     section_parser = SectionParserConfig(
-        canonical_name="BALANÇO HÍDRICO",
+        canonical_name="BALANCO HIDRICO",
         accepted_names=(
             "BALANÇO HÍDRICO",
             "BALANCO HIDRICO",
@@ -68,7 +68,7 @@ class BalancoHidricoSection(BaseSpecificSectionParser):
     )
 
     normalization = NormalizationConfig(
-        normalized_section_name="BALANÇO HÍDRICO",
+        normalized_section_name="BALANCO HIDRICO",
         normalized_item_keys={
             "entradas": "entradas",
             "saidas": "saidas",

@@ -2,17 +2,26 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from med_evo import compile_medievo
-from med_evo.models import ClinicalItem, ClinicalSection, CompilerDiagnostic
-from med_evo.sections import (
+from medi_evo import compile_medi_evo
+from medi_evo.models import ClinicalItem, ClinicalSection, CompilerDiagnostic
+from medi_evo.sections import (
     BalancoHidricoSection,
     BaseSpecificSectionParser,
+    AporteSection,
+    CondutaSection,
     ControlesSection,
     DiagnosticoSection,
+    DispositivosSection,
+    ExameFisicoSection,
+    ExamesImagemSection,
+    ExamesLaboratoriaisSection,
     InformacoesPacienteSection,
+    IntercorrenciasSection,
     ItemParserConfig,
     MedicamentosSection,
+    PlanoCuidadoSection,
     PrismivSection,
+    ResumoCasoSection,
     SectionParserConfig,
     SectionRegistry,
     SubsectionParserConfig,
@@ -27,10 +36,10 @@ class ExamesSection(BaseSpecificSectionParser):
         required_section_value=True,
     )
     subsection_parser = SubsectionParserConfig(
-        default_subsections=("Atual", "Prévio"),
-        required_subsections=("Prévio",),
+        default_subsections=("Atual", "Previo"),
+        required_subsections=("Previo",),
         allow_new=False,
-        inline_states=("atual", "prévio", "previo"),
+        inline_states=("atual", "previo"),
     )
     item_parser = ItemParserConfig(
         allow_free_text=False,
@@ -54,8 +63,8 @@ class ExamesSection(BaseSpecificSectionParser):
 
 def test_specific_section_registry_processes_section_without_changing_minimal_language():
     registry = SectionRegistry([ExamesSection()])
-    compiled = compile_medievo(
-        "EVOLUÇÃO 16/06/2026\n# EXAMES: laboratoriais\n> Prévio: Hb: 10; PCR: 20\n",
+    compiled = compile_medi_evo(
+        "EVOLUÇÃO 16/06/2026\n# EXAMES: laboratoriais\n> Previo: Hb: 10; PCR: 20\n",
         section_registry=registry,
     )
 
@@ -63,21 +72,21 @@ def test_specific_section_registry_processes_section_without_changing_minimal_la
     assert "EXAMES" in compiled.processed_sections
     result = compiled.processed_sections["EXAMES"][0]
     assert result.data["items"][0]["key"] == "Hb"
-    assert result.data["items"][0]["state"] == "Prévio"
+    assert result.data["items"][0]["state"] == "Previo"
     assert result.data["items"][0]["children"][0]["key"] == "PCR"
 
 
 def test_specific_section_can_emit_missing_required_section_error():
     registry = SectionRegistry([ExamesSection()])
-    compiled = compile_medievo("# MEDICAMENTOS:\nDipirona\n", section_registry=registry)
+    compiled = compile_medi_evo("# MEDICAMENTOS:\nDipirona\n", section_registry=registry)
 
     assert "required_section_missing" in {diagnostic.code for diagnostic in compiled.diagnostics}
 
 
 def test_specific_section_can_recognize_inline_state_semantically():
     registry = SectionRegistry([ExamesSection()])
-    compiled = compile_medievo(
-        "# EXAMES: laboratoriais\n> Prévio:\nHb: 10 atual\n",
+    compiled = compile_medi_evo(
+        "# EXAMES: laboratoriais\n> Previo:\nHb: 10 atual\n",
         reference_datetime=datetime(2026, 6, 16, 10, 30),
         section_registry=registry,
     )
@@ -89,7 +98,7 @@ def test_specific_section_can_recognize_inline_state_semantically():
 
 def test_informacoes_paciente_processes_age_without_mutating_ast():
     registry = SectionRegistry([InformacoesPacienteSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -118,7 +127,7 @@ def test_informacoes_paciente_processes_age_without_mutating_ast():
 
 def test_informacoes_paciente_allows_unknown_item_keys():
     registry = SectionRegistry([InformacoesPacienteSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -141,7 +150,7 @@ def test_informacoes_paciente_allows_unknown_item_keys():
 
 def test_informacoes_paciente_errors_when_weight_is_seven_days_old():
     registry = SectionRegistry([InformacoesPacienteSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 17/06/2026",
@@ -163,7 +172,7 @@ def test_informacoes_paciente_errors_when_weight_is_seven_days_old():
 
 def test_informacoes_paciente_warns_when_weight_has_no_date():
     registry = SectionRegistry([InformacoesPacienteSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 17/06/2026",
@@ -185,7 +194,7 @@ def test_informacoes_paciente_warns_when_weight_has_no_date():
 
 def test_diagnostico_parses_free_text_items_with_cid_state_and_dates():
     registry = SectionRegistry([DiagnosticoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -224,7 +233,7 @@ def test_diagnostico_parses_free_text_items_with_cid_state_and_dates():
 
 def test_diagnostico_accepts_case_accent_and_plural_aliases():
     registry = SectionRegistry([DiagnosticoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -241,7 +250,7 @@ def test_diagnostico_accepts_case_accent_and_plural_aliases():
 
 def test_diagnostico_parses_icd11_code():
     registry = SectionRegistry([DiagnosticoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -260,14 +269,14 @@ def test_diagnostico_parses_icd11_code():
 
 def test_diagnostico_requires_section():
     registry = SectionRegistry([DiagnosticoSection()])
-    compiled = compile_medievo("# MEDICAMENTOS:\nDipirona\n", section_registry=registry)
+    compiled = compile_medi_evo("# MEDICAMENTOS:\nDipirona\n", section_registry=registry)
 
     assert "diagnostico_missing_section" in {diagnostic.code for diagnostic in compiled.errors()}
 
 
 def test_diagnostico_rejects_key_value_items():
     registry = SectionRegistry([DiagnosticoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -285,7 +294,7 @@ def test_diagnostico_rejects_key_value_items():
 
 def test_diagnostico_requires_diagnosis_text_after_parseable_fields():
     registry = SectionRegistry([DiagnosticoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -303,7 +312,7 @@ def test_diagnostico_requires_diagnosis_text_after_parseable_fields():
 
 def test_diagnostico_warns_about_possible_invalid_cid_without_removing_it():
     registry = SectionRegistry([DiagnosticoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -324,7 +333,7 @@ def test_diagnostico_warns_about_possible_invalid_cid_without_removing_it():
 
 def test_diagnostico_data_period_rules_follow_state():
     registry = SectionRegistry([DiagnosticoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -346,7 +355,7 @@ def test_diagnostico_data_period_rules_follow_state():
 
 def test_diagnostico_inline_state_wins_and_multiple_states_errors():
     registry = SectionRegistry([DiagnosticoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -367,7 +376,7 @@ def test_diagnostico_inline_state_wins_and_multiple_states_errors():
 
 def test_medicamentos_parses_key_value_items_with_dose_interval_date_and_extras():
     registry = SectionRegistry([MedicamentosSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -396,7 +405,7 @@ def test_medicamentos_parses_key_value_items_with_dose_interval_date_and_extras(
 
 def test_medicamentos_accepts_aliases_and_empty_marker():
     registry = SectionRegistry([MedicamentosSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -415,7 +424,7 @@ def test_medicamentos_accepts_aliases_and_empty_marker():
 
 def test_medicamentos_warns_when_empty_without_explicit_marker():
     registry = SectionRegistry([MedicamentosSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -432,14 +441,14 @@ def test_medicamentos_warns_when_empty_without_explicit_marker():
 
 def test_medicamentos_requires_section():
     registry = SectionRegistry([MedicamentosSection()])
-    compiled = compile_medievo("# DIAGNOSTICO\nR09 Hipoxemia\n", section_registry=registry)
+    compiled = compile_medi_evo("# DIAGNOSTICO\nR09 Hipoxemia\n", section_registry=registry)
 
     assert "medicamentos_missing_section" in {diagnostic.code for diagnostic in compiled.errors()}
 
 
 def test_medicamentos_rejects_free_text_items():
     registry = SectionRegistry([MedicamentosSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -457,7 +466,7 @@ def test_medicamentos_rejects_free_text_items():
 
 def test_medicamentos_warns_when_missing_interval_and_extra():
     registry = SectionRegistry([MedicamentosSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -475,7 +484,7 @@ def test_medicamentos_warns_when_missing_interval_and_extra():
 
 def test_medicamentos_suspended_requires_period_and_warns_on_single_date():
     registry = SectionRegistry([MedicamentosSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -499,7 +508,7 @@ def test_medicamentos_suspended_requires_period_and_warns_on_single_date():
 
 def test_medicamentos_inline_state_wins_and_multiple_states_errors():
     registry = SectionRegistry([MedicamentosSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -520,12 +529,12 @@ def test_medicamentos_inline_state_wins_and_multiple_states_errors():
 
 def test_balanco_hidrico_parses_section_value_bh_and_required_items():
     registry = SectionRegistry([BalancoHidricoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
-                "#BALANÇO HÍDRICO: +369,40 ml",
-                "Entradas: 897,4 ml | Saídas: 528 ml | Diurese: 2,98 ml/kg/h",
+                "#BALANCO HIDRICO: +369,40 ml",
+                "Entradas: 897,4 ml | Saidas: 528 ml | Diurese: 2,98 ml/kg/h",
                 "Evacuações: 2 ml",
             ]
         ),
@@ -533,7 +542,7 @@ def test_balanco_hidrico_parses_section_value_bh_and_required_items():
     )
 
     assert not compiled.errors()
-    result = compiled.processed_sections["BALANÇO HÍDRICO"][0]
+    result = compiled.processed_sections["BALANCO HIDRICO"][0]
     assert result.data["entradas"]["value"] == 897.4
     assert result.data["saidas"]["value"] == 528.0
     assert result.data["bh"]["value"] == 369.4
@@ -545,12 +554,12 @@ def test_balanco_hidrico_parses_section_value_bh_and_required_items():
 
 def test_balanco_hidrico_calculates_missing_bh_with_warning():
     registry = SectionRegistry([BalancoHidricoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
                 "# BALANCO HIDRICO",
-                "Entradas: 100 ml | Saídas: 40 ml | Diurese: 2 ml/kg/h",
+                "Entradas: 100 ml | Saidas: 40 ml | Diurese: 2 ml/kg/h",
             ]
         ),
         section_registry=registry,
@@ -560,7 +569,7 @@ def test_balanco_hidrico_calculates_missing_bh_with_warning():
         diagnostic.code for diagnostic in compiled.warnings()
     }
     assert not compiled.errors()
-    result = compiled.processed_sections["BALANÇO HÍDRICO"][0]
+    result = compiled.processed_sections["BALANCO HIDRICO"][0]
     assert result.data["bh"]["value"] == 60.0
     assert result.data["bh"]["sign"] == "+"
     assert result.data["bh_source"] == "calculated"
@@ -568,12 +577,12 @@ def test_balanco_hidrico_calculates_missing_bh_with_warning():
 
 def test_balanco_hidrico_warns_and_does_not_calculate_when_units_differ():
     registry = SectionRegistry([BalancoHidricoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
                 "# BALANCO HIDRICO",
-                "Entradas: 100 ml | Saídas: 2 ml/kg/h | Diurese: 2 ml/kg/h",
+                "Entradas: 100 ml | Saidas: 2 ml/kg/h | Diurese: 2 ml/kg/h",
             ]
         ),
         section_registry=registry,
@@ -585,18 +594,18 @@ def test_balanco_hidrico_warns_and_does_not_calculate_when_units_differ():
     assert "balanco_hidrico_missing_required_item" in {
         diagnostic.code for diagnostic in compiled.errors()
     }
-    result = compiled.processed_sections["BALANÇO HÍDRICO"][0]
+    result = compiled.processed_sections["BALANCO HIDRICO"][0]
     assert result.data["bh"] is None
 
 
 def test_balanco_hidrico_errors_when_bh_is_discrepant_at_one_decimal():
     registry = SectionRegistry([BalancoHidricoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
                 "# BALANCO HIDRICO: +58,8 ml",
-                "Entradas: 100 ml | Saídas: 40 ml | Diurese: 2 ml/kg/h",
+                "Entradas: 100 ml | Saidas: 40 ml | Diurese: 2 ml/kg/h",
             ]
         ),
         section_registry=registry,
@@ -609,22 +618,22 @@ def test_balanco_hidrico_errors_when_bh_is_discrepant_at_one_decimal():
 
 def test_balanco_hidrico_requires_sign_for_nonzero_bh_but_not_zero():
     registry = SectionRegistry([BalancoHidricoSection()])
-    nonzero = compile_medievo(
+    nonzero = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
                 "# BALANCO HIDRICO: 60 ml",
-                "Entradas: 100 ml | Saídas: 40 ml | Diurese: 2 ml/kg/h",
+                "Entradas: 100 ml | Saidas: 40 ml | Diurese: 2 ml/kg/h",
             ]
         ),
         section_registry=registry,
     )
-    zero = compile_medievo(
+    zero = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
                 "# BALANCO HIDRICO: 0 ml",
-                "Entradas: 40 ml | Saídas: 40 ml | Diurese: 2 ml/kg/h",
+                "Entradas: 40 ml | Saidas: 40 ml | Diurese: 2 ml/kg/h",
             ]
         ),
         section_registry=registry,
@@ -640,7 +649,7 @@ def test_balanco_hidrico_requires_sign_for_nonzero_bh_but_not_zero():
 
 def test_balanco_hidrico_requires_missing_items():
     registry = SectionRegistry([BalancoHidricoSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -657,12 +666,12 @@ def test_balanco_hidrico_requires_missing_items():
 
 def test_prismiv_parses_percent_and_optional_prismiii_fields():
     registry = SectionRegistry([PrismivSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
                 "#PRISMIV:90%",
-                "PRISMIII: Neurológico: 90; Não Neurológico: 90",
+                "PRISMIII: Neurologico: 90; Não Neurologico: 90",
             ]
         ),
         section_registry=registry,
@@ -679,8 +688,8 @@ def test_prismiv_parses_percent_and_optional_prismiii_fields():
 
 def test_prismiv_requires_percent_section_value():
     registry = SectionRegistry([PrismivSection()])
-    missing = compile_medievo("# PRISMIV\n", section_registry=registry)
-    invalid = compile_medievo("# PRISMIV: 90\n", section_registry=registry)
+    missing = compile_medi_evo("# PRISMIV\n", section_registry=registry)
+    invalid = compile_medi_evo("# PRISMIV: 90\n", section_registry=registry)
 
     assert "prismiv_missing_section_value" in {
         diagnostic.code for diagnostic in missing.errors()
@@ -692,12 +701,12 @@ def test_prismiv_requires_percent_section_value():
 
 def test_prismiv_prismiii_fields_are_required_when_item_exists():
     registry = SectionRegistry([PrismivSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
                 "#PRISMIV:90%",
-                "PRISMIII: Neurológico: 90",
+                "PRISMIII: Neurologico: 90",
             ]
         ),
         section_registry=registry,
@@ -710,7 +719,7 @@ def test_prismiv_prismiii_fields_are_required_when_item_exists():
 
 def test_prismiv_rejects_unexpected_items():
     registry = SectionRegistry([PrismivSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -728,7 +737,7 @@ def test_prismiv_rejects_unexpected_items():
 
 def test_controles_parses_numeric_textual_and_basic_controls():
     registry = SectionRegistry([ControlesSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -760,7 +769,7 @@ def test_controles_parses_numeric_textual_and_basic_controls():
 
 def test_controles_accepts_sinais_vitais_alias():
     registry = SectionRegistry([ControlesSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -777,7 +786,7 @@ def test_controles_accepts_sinais_vitais_alias():
 
 def test_controles_basic_requires_date():
     registry = SectionRegistry([ControlesSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -797,7 +806,7 @@ def test_controles_basic_requires_date():
 
 def test_controles_rejects_free_text_items():
     registry = SectionRegistry([ControlesSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -815,7 +824,7 @@ def test_controles_rejects_free_text_items():
 
 def test_controles_numeric_range_can_have_explicit_period():
     registry = SectionRegistry([ControlesSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
@@ -832,16 +841,133 @@ def test_controles_numeric_range_can_have_explicit_period():
     assert item["periodo"] != "ultimas_24h"
 
 
+def test_dated_sections_parse_date_key_and_sort_descending():
+    registry = SectionRegistry([ExamesLaboratoriaisSection()])
+    compiled = compile_medi_evo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# EXAMES",
+                "10/06: Hb 10",
+                "15/06: Hb 12",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    items = compiled.processed_sections["EXAMES LABORATORIAIS"][0].data["items"]
+    assert [item["data"] for item in items] == ["2026-06-15", "2026-06-10"]
+    assert [item["conteudo"] for item in items] == ["Hb 12", "Hb 10"]
+
+
+def test_dated_sections_parse_date_state_with_time_key():
+    registry = SectionRegistry([IntercorrenciasSection()])
+    compiled = compile_medi_evo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# EVOLUCAO",
+                "> 10/06:",
+                "10:00: Sem intercorrencias",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    result = next(iter(compiled.processed_sections.values()))[0]
+    item = result.data["items"][0]
+    assert item["data"] == "2026-06-10"
+    assert item["hora"] == "10:00"
+    assert item["conteudo"] == "Sem intercorrencias"
+
+
+def test_dated_sections_reject_item_without_date_and_state_without_time_key():
+    registry = SectionRegistry([ExamesImagemSection()])
+    compiled = compile_medi_evo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# EXAME DE IMAGEM",
+                "RX: torax normal",
+                "> 10/06:",
+                "torax normal",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    codes = {diagnostic.code for diagnostic in compiled.errors()}
+    assert "exames_de_imagem_date_key_required" in codes
+    assert "exames_de_imagem_time_key_required" in codes
+
+
+def test_free_sections_split_free_text_and_key_value_items():
+    registry = SectionRegistry([ResumoCasoSection()])
+    compiled = compile_medi_evo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# HMA",
+                "Paciente com tosse",
+                "Antecedentes: prematuridade",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    result = compiled.processed_sections["RESUMO DO CASO"][0]
+    assert result.data["free_text_items"][0]["values"] == ["Paciente com tosse"]
+    assert result.data["key_value_items"][0]["key"] == "Antecedentes"
+    assert result.data["key_value_items"][0]["values"] == ["prematuridade"]
+
+
+def test_free_sections_warn_when_present_but_empty_and_accept_aliases():
+    registry = SectionRegistry(
+        [
+            ExameFisicoSection(),
+            AporteSection(),
+            CondutaSection(),
+            PlanoCuidadoSection(),
+            DispositivosSection(),
+        ]
+    )
+    compiled = compile_medi_evo(
+        "\n".join(
+            [
+                "EVOLUCAO 16/06/2026",
+                "# EXAME FISICO",
+                "# DIETA",
+                "Enteral plena",
+                "# CONDUTAS",
+                "Manter",
+                "# PLANO DE CUIDADO",
+                "Reavaliar",
+                "# DISPOSITIVOS",
+                "SNE: posicionada",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    assert "exame_fisico_empty_section" in {diagnostic.code for diagnostic in compiled.warnings()}
+    assert "APORTE" in compiled.processed_sections
+    assert "CONDUTA" in compiled.processed_sections
+
+
 def test_specific_section_registry_preserves_repeated_canonical_sections():
     registry = SectionRegistry([ExamesSection()])
-    compiled = compile_medievo(
+    compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
                 "# EXAMES: laboratoriais",
-                "> Pr\u00e9vio: Hb: 10",
+                "> Previo: Hb: 10",
                 "# EXAMES: imagem",
-                "> Pr\u00e9vio: PCR: 20",
+                "> Previo: PCR: 20",
             ]
         ),
         section_registry=registry,

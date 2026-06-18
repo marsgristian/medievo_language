@@ -6,10 +6,10 @@ from typing import Literal
 from lark import Lark, Token, Tree
 from lark.exceptions import LarkError, UnexpectedInput
 
-from .grammar import medievo_GRAMMAR
+from .grammar import medi_evo_GRAMMAR
 from ..models import CompilerDiagnostic, SourceLine
 
-_LINE_PARSER = Lark(medievo_GRAMMAR, parser="lalr", propagate_positions=True, maybe_placeholders=False)
+_LINE_PARSER = Lark(medi_evo_GRAMMAR, parser="lalr", propagate_positions=True, maybe_placeholders=False)
 
 
 @dataclass(slots=True)
@@ -34,7 +34,7 @@ def parse_lines(text: str) -> LexResult:
             CompilerDiagnostic(
                 severity="error",
                 code="syntax_error",
-                message=f"Erro sintático medievo: {exc}",
+                message=f"Erro sintatico Medi Evo language: {exc}",
                 phase="syntactic",
                 line=line,
                 column=column,

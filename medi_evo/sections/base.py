@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Protocol
 
-from med_evo.models import ClinicalDocument, ClinicalItem, ClinicalSection, CompilerDiagnostic
+from medi_evo.models import ClinicalDocument, ClinicalItem, ClinicalSection, CompilerDiagnostic
 
 
 def normalize_name(value: str) -> str:

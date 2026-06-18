@@ -3,13 +3,13 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from med_evo.models import (
+from medi_evo.models import (
     ClinicalDocument,
     ClinicalItem,
     ClinicalSection,
     CompilerDiagnostic,
 )
-from med_evo.sections.base import (
+from medi_evo.sections.base import (
     AssociatedErrorsConfig,
     BaseSpecificSectionParser,
     ItemParserConfig,
@@ -18,7 +18,7 @@ from med_evo.sections.base import (
     SubsectionParserConfig,
     normalize_name,
 )
-from med_evo.minimal.text import find_structural_colon
+from medi_evo.minimal.text import find_structural_colon
 
 
 class PrismivSection(BaseSpecificSectionParser):
@@ -190,15 +190,15 @@ class PrismivSection(BaseSpecificSectionParser):
             "neurologico": "neurologico",
             "nao neurologico": "nao_neurologico",
             "não neurologico": "nao_neurologico",
-            "nao_neurológico": "nao_neurologico",
+            "nao neurológico": "nao_neurologico",
             "não neurológico": "nao_neurologico",
         }
         return aliases.get(normalized)
 
     def _display_field(self, field: str) -> str:
         if field == "nao_neurologico":
-            return "Não Neurológico"
-        return "Neurológico"
+            return "Nao Neurologico"
+        return "Neurologico"
 
     def _item_value_text(self, item: ClinicalItem) -> str:
         return " ".join(value.value for value in item.values if value.value).strip()

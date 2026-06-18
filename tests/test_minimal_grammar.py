@@ -4,14 +4,14 @@ from datetime import datetime
 
 import pytest
 
-from med_evo.minimal import compile_minimal_medievo
+from medi_evo.minimal import compile_minimal_medi_evo
 
 
 BASE_REFERENCE = datetime(2026, 6, 16, 10, 30)
 
 
 def codes(text: str) -> set[str]:
-    compiled = compile_minimal_medievo(text, reference_datetime=BASE_REFERENCE)
+    compiled = compile_minimal_medi_evo(text, reference_datetime=BASE_REFERENCE)
     return {diagnostic.code for diagnostic in compiled.diagnostics}
 
 
@@ -45,14 +45,14 @@ def test_error_empty_item_value(source: str):
 
 
 def test_free_text_item_without_colon_is_allowed():
-    compiled = compile_minimal_medievo("# RESUMO:\nPaciente em bom estado geral\n", reference_datetime=BASE_REFERENCE)
+    compiled = compile_minimal_medi_evo("# RESUMO:\nPaciente em bom estado geral\n", reference_datetime=BASE_REFERENCE)
     assert not compiled.errors()
     assert compiled.sections[0].items[0].key is None
     assert compiled.sections[0].items[0].values[0].value == "Paciente em bom estado geral"
 
 
 def test_subsection_can_have_items_in_same_line():
-    compiled = compile_minimal_medievo("# EXAMES:\n> Prévio: Hb: 10 | PCR: 20\n", reference_datetime=BASE_REFERENCE)
+    compiled = compile_minimal_medi_evo("# EXAMES:\n> Prévio: Hb: 10 | PCR: 20\n", reference_datetime=BASE_REFERENCE)
     assert not compiled.errors()
     section = compiled.sections[0]
     assert section.states[0].subsec_name == "Prévio"
@@ -61,7 +61,7 @@ def test_subsection_can_have_items_in_same_line():
 
 
 def test_section_line_accepts_name_and_optional_value_only():
-    compiled = compile_minimal_medievo("# EXAMES: laboratoriais (últimas 24h)\nHb: 10\n", reference_datetime=BASE_REFERENCE)
+    compiled = compile_minimal_medi_evo("# EXAMES: laboratoriais (últimas 24h)\nHb: 10\n", reference_datetime=BASE_REFERENCE)
     assert not compiled.errors()
     section = compiled.sections[0]
     assert section.section_name == "EXAMES"
@@ -70,7 +70,7 @@ def test_section_line_accepts_name_and_optional_value_only():
 
 
 def test_section_allows_markers_inside_parentheses_and_ignored_comments():
-    compiled = compile_minimal_medievo("# EXAMES: painel (> 24h) /* a | b */\nHb: 10\n", reference_datetime=BASE_REFERENCE)
+    compiled = compile_minimal_medi_evo("# EXAMES: painel (> 24h) /* a | b */\nHb: 10\n", reference_datetime=BASE_REFERENCE)
 
     assert not compiled.errors()
     section = compiled.sections[0]

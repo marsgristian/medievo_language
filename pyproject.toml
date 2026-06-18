@@ -1,25 +1,27 @@
-[tool.poetry]
-name = "medievo-compiler"
-version = "0.3.0"
-description = "Compilador medievo: DSL inspirada em Markdown para evolução médica semi-estruturada"
-authors = ["medievo Project"]
+[project]
+name = "medi-evo-language"
+version = "1.0.0"
+description = "Medi Evo language: linguagem para evolucoes medicas semi-estruturadas"
+authors = [{ name = "Cristian César Martins" }]
 readme = "README.md"
-packages = [{ include = "med_evo" }]
-include = ["med_evo/parser/medievo.lark"]
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "lark>=1.1.9",
+    "pandas>=2.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11,<4.0"
-lark = ">=1.1.9"
-pandas = ">=2.0"
+[project.scripts]
+medi-evo = "medi_evo.cli:main"
+
+[tool.poetry]
+packages = [{ include = "medi_evo" }]
+include = ["medi_evo/parser/medi_evo.lark"]
 
 [tool.poetry.group.ui.dependencies]
 streamlit = ">=1.33"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.0"
-
-[tool.poetry.scripts]
-medievo = "med_evo.cli:main"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]

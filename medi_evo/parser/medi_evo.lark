@@ -1,4 +1,4 @@
-// medievo - gramatica estrutural minima inspirada em Markdown.
+// Medi Evo language - gramatica estrutural minima inspirada em Markdown.
 // Parser generator: Lark.
 // A gramatica reconhece apenas a estrutura externa: secao (#), subsecao (>), texto e linhas em branco.
 // A interpretacao de datas, key/value, states inline, itens compostos e regras clinicas fica em Python.

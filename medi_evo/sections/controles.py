@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
-from med_evo.models import (
+from medi_evo.models import (
     ClinicalDate,
     ClinicalDatePeriod,
     ClinicalDocument,
@@ -13,7 +13,7 @@ from med_evo.models import (
     ClinicalSection,
     CompilerDiagnostic,
 )
-from med_evo.sections.base import (
+from medi_evo.sections.base import (
     AssociatedErrorsConfig,
     BaseSpecificSectionParser,
     ItemParserConfig,

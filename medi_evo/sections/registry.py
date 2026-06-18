@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from med_evo.models import ClinicalDocument
-from med_evo.sections.base import BaseSpecificSectionParser, SectionProcessingResult
+from medi_evo.models import ClinicalDocument
+from medi_evo.sections.base import BaseSpecificSectionParser, SectionProcessingResult
 
 
 @dataclass(slots=True)

@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime, time
 
-from med_evo.models import ClinicalDate, ClinicalDatePeriod, CompilerDiagnostic
+from medi_evo.models import ClinicalDate, ClinicalDatePeriod, CompilerDiagnostic
 
 _DATE_WITH_OPTIONAL_YEAR = r"\d{1,2}/\d{1,2}(?:/\d{2,4})?(?:\s+\d{1,2}:\d{2})?"
 _DAY_TO_DATE_PERIOD_RE = re.compile(
