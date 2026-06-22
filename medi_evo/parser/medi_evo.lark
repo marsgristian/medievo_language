@@ -8,6 +8,7 @@ start: line*
 line: section_line NEWLINE?      -> section_line
     | subsection_line NEWLINE?   -> subsection_line
     | text_line NEWLINE?         -> text_line
+    | BLANK_LINE NEWLINE?        -> blank_line
     | NEWLINE                    -> blank_line
 
 section_line: SECTION_LINE
@@ -24,5 +25,6 @@ SUBSECTION_LINE: />[ \t]*[^\r\n]+/
 
 // Linha textual nao pode comecar com marcador estrutural nem com key explicitamente vazia.
 TEXT_LINE: /[ \t]*(?![#>:])(?=.*\S)[^\r\n]+/
+BLANK_LINE: /[ \t]+/
 
 %import common.NEWLINE

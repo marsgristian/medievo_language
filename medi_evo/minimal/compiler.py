@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
 from medi_evo.models import (
@@ -25,6 +26,8 @@ from .text import (
     remove_ignored_comments,
     split_top_level,
 )
+
+_OPTIONAL_ITEM_MARKER_RE = re.compile(r"^\s*-\s*")
 
 
 class MinimalMediEvoCompiler:
@@ -265,7 +268,7 @@ def _parse_item(
     line: int | None,
     inline_states: set[str],
 ) -> ClinicalItem:
-    original = normalize_spaces(raw_item)
+    original = normalize_spaces(_strip_optional_item_marker(raw_item))
     working = original
 
     date_match = find_first_period(
@@ -425,10 +428,16 @@ def _validate_single_item_syntax(item: ClinicalItem, diagnostics: list[CompilerD
         value_text = item.raw_text[colon + 1 :].strip()
         if not key_text:
             diagnostics.append(_syntax("empty_item_key", "Item com key explicitamente vazia antes de `:`.", item.line, item.raw_text, section))
+        elif key_text.endswith("-"):
+            diagnostics.append(_syntax("invalid_item_key_marker", "Item com key não pode terminar com `-` antes de `:`.", item.line, item.raw_text, section))
         if not value_text or value_text in {"|", ";"}:
             diagnostics.append(_syntax("empty_item_value", "Item com key explícita precisa ter value após `:`.", item.line, item.raw_text, section))
     for child in item.children:
         _validate_single_item_syntax(child, diagnostics, section)
+
+
+def _strip_optional_item_marker(text: str) -> str:
+    return _OPTIONAL_ITEM_MARKER_RE.sub("", text, count=1)
 
 
 def _syntax(

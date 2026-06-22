@@ -217,20 +217,6 @@ class DiagnosticoSection(BaseSpecificSectionParser):
                 )
             )
 
-        invalid_cid = self._invalid_cid_candidate(item)
-        if invalid_cid is not None:
-            diagnostics.append(
-                CompilerDiagnostic(
-                    severity="warning",
-                    code="diagnostico_possible_invalid_cid",
-                    message=f"'{invalid_cid}' é um CID? Se for, confira o formato.",
-                    phase="semantic",
-                    line=item.line,
-                    section=section.section_name,
-                    raw_text=item.raw_text,
-                )
-            )
-
         subsection_state = self._state_from_subsection_context(item, section)
         inline_state = self._inline_state_from_item(item, subsection_state=subsection_state)
         if subsection_state is not None and inline_state is not None:
@@ -312,15 +298,6 @@ class DiagnosticoSection(BaseSpecificSectionParser):
         cid = match.group(0).upper()
         version = "CID-11" if _ICD11_RE.fullmatch(cid) else "CID-10"
         return cid, version
-
-    def _invalid_cid_candidate(self, item: ClinicalItem) -> str | None:
-        text = self._item_text(item)
-        first = text.split(maxsplit=1)[0] if text else ""
-        if not first or self._parse_cid(first)[0] is not None:
-            return None
-        if _POSSIBLE_CID_RE.fullmatch(first.upper()):
-            return first
-        return None
 
     def _state_from_subsection_context(
         self,
@@ -410,8 +387,6 @@ _ICD11_RE = re.compile(
     flags=re.IGNORECASE,
 )
 _CID_RE = re.compile(rf"(?:{_ICD10_RE.pattern}|{_ICD11_RE.pattern})(?=\s|$)", flags=re.IGNORECASE)
-_POSSIBLE_CID_RE = re.compile(r"[A-Z0-9][A-Z0-9.]{2,}")
-
 _SORTED_STATE_ALIASES = sorted(
     DiagnosticoSection.STATE_ALIASES.items(),
     key=lambda item: len(item[0]),

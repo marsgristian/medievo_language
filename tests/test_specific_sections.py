@@ -310,7 +310,7 @@ def test_diagnostico_requires_diagnosis_text_after_parseable_fields():
     }
 
 
-def test_diagnostico_warns_about_possible_invalid_cid_without_removing_it():
+def test_diagnostico_does_not_warn_about_plain_text_as_possible_cid():
     registry = SectionRegistry([DiagnosticoSection()])
     compiled = compile_medi_evo(
         "\n".join(
@@ -323,7 +323,7 @@ def test_diagnostico_warns_about_possible_invalid_cid_without_removing_it():
         section_registry=registry,
     )
 
-    assert "diagnostico_possible_invalid_cid" in {
+    assert "diagnostico_possible_invalid_cid" not in {
         diagnostic.code for diagnostic in compiled.warnings()
     }
     item = compiled.processed_sections["DIAGNÓSTICO"][0].data["items"][0]
@@ -859,6 +859,47 @@ def test_dated_sections_parse_date_key_and_sort_descending():
     items = compiled.processed_sections["EXAMES LABORATORIAIS"][0].data["items"]
     assert [item["data"] for item in items] == ["2026-06-15", "2026-06-10"]
     assert [item["conteudo"] for item in items] == ["Hb 12", "Hb 10"]
+
+
+def test_dated_sections_accept_parenthesized_date_items_and_group_headings():
+    registry = SectionRegistry([ExamesLaboratoriaisSection()])
+    compiled = compile_medi_evo(
+        "\n".join(
+            [
+                "EVOLUCAO 18/06/2026",
+                "# EXAMES LABORATORIAIS",
+                "Culturas: | (16/06): Hemocultura: coletado | Painel viral externo: | (15/06): Teste Rapido VSR: positivo",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    items = compiled.processed_sections["EXAMES LABORATORIAIS"][0].data["items"]
+    assert [item["data"] for item in items] == ["2026-06-16", "2026-06-15"]
+    assert [item["conteudo"] for item in items] == [
+        "Hemocultura: coletado",
+        "Teste Rapido VSR: positivo",
+    ]
+
+
+def test_dated_sections_accept_parenthesized_date_items_in_analogous_sections():
+    registry = SectionRegistry([ExamesImagemSection()])
+    compiled = compile_medi_evo(
+        "\n".join(
+            [
+                "EVOLUCAO 18/06/2026",
+                "# EXAME DE IMAGEM",
+                "(15/06): RX torax: normal",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    item = compiled.processed_sections["EXAMES DE IMAGEM"][0].data["items"][0]
+    assert item["data"] == "2026-06-15"
+    assert item["conteudo"] == "RX torax: normal"
 
 
 def test_dated_sections_parse_date_state_with_time_key():

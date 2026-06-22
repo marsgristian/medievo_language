@@ -105,7 +105,7 @@ def _render_section(section: dict[str, Any], *, compact: bool) -> str:
 
 
 def _join_items(items: list[dict[str, Any]], *, compact: bool) -> str:
-    separator = "|" if compact else " | "
+    separator = "|" if compact else "\r\n"
     return separator.join(_render_item(item, compact=compact) for item in items)
 
 

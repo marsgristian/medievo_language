@@ -51,6 +51,15 @@ def test_free_text_item_without_colon_is_allowed():
     assert compiled.sections[0].items[0].values[0].value == "Paciente em bom estado geral"
 
 
+@pytest.mark.parametrize("blank_line", ["   ", "\t", " \t "])
+def test_whitespace_only_line_is_blank(blank_line: str):
+    compiled = compile_minimal_medi_evo(f"# CONTROLES:\n{blank_line}\nFC: 100 bpm\n", reference_datetime=BASE_REFERENCE)
+
+    assert not compiled.errors()
+    assert len(compiled.sections[0].items) == 1
+    assert compiled.sections[0].items[0].key == "FC"
+
+
 def test_subsection_can_have_items_in_same_line():
     compiled = compile_minimal_medi_evo("# EXAMES:\n> Prévio: Hb: 10 | PCR: 20\n", reference_datetime=BASE_REFERENCE)
     assert not compiled.errors()

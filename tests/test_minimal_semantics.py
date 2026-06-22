@@ -75,6 +75,31 @@ def test_compound_item_creates_children():
     assert [child.values[0].value for child in item.children] == ["12000", "250000"]
 
 
+def test_optional_dash_item_marker_is_ignored_with_or_without_space():
+    compiled = compile_minimal_medi_evo(
+        "\n".join(
+            [
+                "# IDENTIFICACAO",
+                "- Nome: Heloisa Soares Costa",
+                "-Idade: 6 meses",
+                "- Prontuario: 4148185",
+            ]
+        )
+    )
+
+    assert not compiled.errors()
+    section = compiled.sections[0]
+    assert [item.key for item in section.items] == ["Nome", "Idade", "Prontuario"]
+    assert section.items[0].raw_text == "Nome: Heloisa Soares Costa"
+    assert section.items[1].values[0].value == "6 meses"
+
+
+def test_item_key_cannot_end_with_dash_marker():
+    compiled = compile_minimal_medi_evo("# IDENTIFICACAO\nNome-: Heloisa\n")
+
+    assert "invalid_item_key_marker" in {diagnostic.code for diagnostic in compiled.errors()}
+
+
 def test_json_serializes_datetime_and_timedelta():
     compiled = compile_minimal_medi_evo("EVOLUÇÃO 16/06/2026\n# DISPOSITIVOS:\nSVD: 10/06-12/06\n")
     payload = compiled.to_json()

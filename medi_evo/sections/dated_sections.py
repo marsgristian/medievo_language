@@ -49,7 +49,22 @@ class DatedClinicalSection(BaseSpecificSectionParser):
         section: ClinicalSection,
         document: ClinicalDocument,
     ) -> list[CompilerDiagnostic]:
-        diagnostics = super().validate_section(section, document)
+        self._suppress_group_heading_diagnostics(section, document)
+
+        diagnostics: list[CompilerDiagnostic] = []
+        if self.section_parser.required_section_value and not section.section_value:
+            diagnostics.append(
+                CompilerDiagnostic(
+                    severity="error",
+                    code=self.associated_errors.missing_section_value,
+                    message=f"Seção {section.section_name} exige section_value após `:`.",
+                    phase="semantic",
+                    line=section.start_line,
+                    section=section.section_name,
+                    raw_text=section.raw_text,
+                )
+            )
+        diagnostics.extend(self.validate_subsections(section))
 
         for subsection in section.states:
             if self._parse_date_text(subsection.subsec_name, document.reference_datetime) is None:
@@ -66,6 +81,9 @@ class DatedClinicalSection(BaseSpecificSectionParser):
                 )
 
         for item in section.items:
+            if self._is_group_heading(item):
+                continue
+
             if item.state:
                 if self._parse_date_text(item.state, document.reference_datetime) is None:
                     diagnostics.append(
@@ -93,7 +111,7 @@ class DatedClinicalSection(BaseSpecificSectionParser):
                     )
                 continue
 
-            if item.date is None or item.key is None or self._parse_date_text(item.key, document.reference_datetime) is None:
+            if not self._has_item_date(item, document.reference_datetime):
                 diagnostics.append(
                     CompilerDiagnostic(
                         severity="error",
@@ -191,6 +209,39 @@ class DatedClinicalSection(BaseSpecificSectionParser):
             reference_datetime=reference_datetime,
             diagnostics=diagnostics,
         )
+
+    def _has_item_date(self, item: ClinicalItem, reference_datetime: datetime | None) -> bool:
+        if isinstance(item.date, ClinicalDate):
+            return True
+        return item.key is not None and self._parse_date_text(item.key, reference_datetime) is not None
+
+    def _is_group_heading(self, item: ClinicalItem) -> bool:
+        return (
+            item.key is not None
+            and item.date is None
+            and item.state is None
+            and not item.values
+            and not item.children
+        )
+
+    def _suppress_group_heading_diagnostics(self, section: ClinicalSection, document: ClinicalDocument) -> None:
+        group_headings = {
+            (item.line, item.raw_text)
+            for item in section.items
+            if self._is_group_heading(item)
+        }
+        if not group_headings:
+            return
+
+        document.diagnostics[:] = [
+            diagnostic
+            for diagnostic in document.diagnostics
+            if not (
+                diagnostic.code == "empty_item_value"
+                and diagnostic.section == section.section_name
+                and (diagnostic.line, diagnostic.raw_text) in group_headings
+            )
+        ]
 
     def _code_prefix(self) -> str:
         return _strip_accents(normalize_name(self.canonical_name)).replace(" ", "_")
