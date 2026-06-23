@@ -1,6 +1,6 @@
 [project]
 name = "medi-evo-language"
-version = "1.0.1"
+version = "1.0.2"
 description = "Medi Evo language: linguagem para evolucoes medicas semi-estruturadas"
 authors = [{ name = "Cristian César Martins" }]
 readme = "README.md"

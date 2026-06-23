@@ -23,9 +23,9 @@ COMPLETE_TEXT = "\n".join(
         "# CONTROLES",
         "FC: 59-180 bpm | Dist. resp: N 16/06",
         "# EXAMES",
-        "10/06: Hb 10",
+        "(10/06) Hb: 10",
         "# EXAMES DE IMAGEM",
-        "10/06: RX torax normal",
+        "(10/06) RX torax: normal",
         "# INTERCORRENCIAS",
         "> 10/06:",
         "10:00: Sem intercorrencias",
@@ -53,7 +53,7 @@ def test_compile_text_returns_public_object_and_normalized_text():
     assert "sections" in result["object"]
     assert "INFORMAÇÕES DO PACIENTE" in result["object"]["sections"]
     assert "#INFORMACOES DO PACIENTE" in result["normalized_text"]
-    assert "Nome: Maria | Idade: 2 anos" in result["normalized_text"]
+    assert "Nome: Maria\r\nIdade: 2 anos" in result["normalized_text"]
 
 
 def test_compile_json_renders_complete_compile_text_result():

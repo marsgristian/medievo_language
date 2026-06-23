@@ -841,15 +841,15 @@ def test_controles_numeric_range_can_have_explicit_period():
     assert item["periodo"] != "ultimas_24h"
 
 
-def test_dated_sections_parse_date_key_and_sort_descending():
+def test_exam_sections_parse_dated_key_value_items_in_source_order():
     registry = SectionRegistry([ExamesLaboratoriaisSection()])
     compiled = compile_medi_evo(
         "\n".join(
             [
                 "EVOLUCAO 16/06/2026",
                 "# EXAMES",
-                "10/06: Hb 10",
-                "15/06: Hb 12",
+                "(10/06) Hb: 10",
+                "(15/06) PCR: 12",
             ]
         ),
         section_registry=registry,
@@ -857,8 +857,9 @@ def test_dated_sections_parse_date_key_and_sort_descending():
 
     assert not compiled.errors()
     items = compiled.processed_sections["EXAMES LABORATORIAIS"][0].data["items"]
-    assert [item["data"] for item in items] == ["2026-06-15", "2026-06-10"]
-    assert [item["conteudo"] for item in items] == ["Hb 12", "Hb 10"]
+    assert [item["data"] for item in items] == ["2026-06-10", "2026-06-15"]
+    assert [item["chave"] for item in items] == ["Hb", "PCR"]
+    assert [item["valor"] for item in items] == ["10", "12"]
 
 
 def test_dated_sections_accept_parenthesized_date_items_and_group_headings():
@@ -877,6 +878,8 @@ def test_dated_sections_accept_parenthesized_date_items_and_group_headings():
     assert not compiled.errors()
     items = compiled.processed_sections["EXAMES LABORATORIAIS"][0].data["items"]
     assert [item["data"] for item in items] == ["2026-06-16", "2026-06-15"]
+    assert [item["chave"] for item in items] == ["Hemocultura", "Teste Rapido VSR"]
+    assert [item["valor"] for item in items] == ["coletado", "positivo"]
     assert [item["conteudo"] for item in items] == [
         "Hemocultura: coletado",
         "Teste Rapido VSR: positivo",
@@ -899,7 +902,37 @@ def test_dated_sections_accept_parenthesized_date_items_in_analogous_sections():
     assert not compiled.errors()
     item = compiled.processed_sections["EXAMES DE IMAGEM"][0].data["items"][0]
     assert item["data"] == "2026-06-15"
+    assert item["chave"] == "RX torax"
+    assert item["valor"] == "normal"
     assert item["conteudo"] == "RX torax: normal"
+
+
+def test_exam_sections_accept_text_and_date_subcategories():
+    registry = SectionRegistry([ExamesLaboratoriaisSection()])
+    compiled = compile_medi_evo(
+        "\n".join(
+            [
+                "EVOLUCAO 23/06/2026",
+                "# EXAMES Laboratoriais",
+                "> Painel Viral:",
+                "(19/05 - UPA) COVID 19: Nao reagente",
+                "(19/05 - HU) Influenza A/B: Nao reagente",
+                "> Culturas:",
+                "(30/05): Hemocultura (04/06- 3 parcial): Negativa",
+                "> 31/05:",
+                "Antibiograma: Nao houve crescimento bacteriano.",
+            ]
+        ),
+        section_registry=registry,
+    )
+
+    assert not compiled.errors()
+    items = compiled.processed_sections["EXAMES LABORATORIAIS"][0].data["items"]
+    assert [item["subcategoria"] for item in items] == ["Painel Viral", "Painel Viral", "Culturas", None]
+    assert [item["origem"] for item in items] == ["UPA", "HU", None, None]
+    assert [item["data"] for item in items] == ["2026-05-19", "2026-05-19", "2026-05-30", "2026-05-31"]
+    assert [item["chave"] for item in items] == ["COVID 19", "Influenza A/B", "Hemocultura", "Antibiograma"]
+    assert items[2]["comentarios_chave"] == ["04/06- 3 parcial"]
 
 
 def test_dated_sections_parse_date_state_with_time_key():
@@ -924,7 +957,7 @@ def test_dated_sections_parse_date_state_with_time_key():
     assert item["conteudo"] == "Sem intercorrencias"
 
 
-def test_dated_sections_reject_item_without_date_and_state_without_time_key():
+def test_exam_sections_reject_items_without_date_or_key():
     registry = SectionRegistry([ExamesImagemSection()])
     compiled = compile_medi_evo(
         "\n".join(
@@ -940,8 +973,8 @@ def test_dated_sections_reject_item_without_date_and_state_without_time_key():
     )
 
     codes = {diagnostic.code for diagnostic in compiled.errors()}
-    assert "exames_de_imagem_date_key_required" in codes
-    assert "exames_de_imagem_time_key_required" in codes
+    assert "exames_de_imagem_date_required" in codes
+    assert "exames_de_imagem_item_key_required" in codes
 
 
 def test_free_sections_split_free_text_and_key_value_items():
